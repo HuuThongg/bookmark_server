@@ -43,7 +43,7 @@ func LoadConfig(path string) (config Config, err error) {
 	refreshTokenDuration := os.Getenv("REFRESH_TOKEN_DURATION")
 	config.SecretKeyHex = os.Getenv("SECRET_KEY_HEX")
 	config.PublicKeyHex = os.Getenv("PUBLIC_KEY_HEX")
-	config.DOSecretKey = os.Getenv("DO_SECRET")
+	config.DOSecretKey = os.Getenv("DO_SECRETS")
 	config.DOSpacesKey = os.Getenv("DO_SPACES")
 	config.MailJetApiKey = os.Getenv("MAILJET_API_KEY")
 	config.MailJetSecretKey = os.Getenv("MAILJET_SECRET_KEY")
