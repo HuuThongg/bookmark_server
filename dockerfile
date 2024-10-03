@@ -14,7 +14,7 @@ COPY . .
 # Copy config.env
 # COPY config.env /app/config.env
 # Build the Go application for Linux amd64
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o main ./cmd/api/main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin ./cmd/api/main.go
 
 # Use a minimal base image for the final build
 FROM alpine:latest
@@ -23,14 +23,14 @@ FROM alpine:latest
 #RUN apk --no-cache add ca-certificates
 
 # Set the working directory in the final image
-WORKDIR /root/
+WORKDIR /app
 
 # Copy the binary from the builder stage
-COPY --from=builder /app/main .
+COPY --from=builder /app/bin .
 # Copy the config.env file from the builder stage
 # COPY --from=builder /app/config.env .
 # Expose the port that the application will run on
 EXPOSE 8080
 
 # Command to run the application
-CMD ["./main"]
+CMD ["./bin"]
