@@ -8,7 +8,7 @@ import (
 )
 
 type Config struct {
-	DBString               string        `mapstructure:"dbString"`
+	DATABASE_URL           string        `mapstructure:"DATABASE_URL"`
 	MAILGUN_DOMAIN         string        `mapstructure:"mailgunDomain"`
 	MailgunAPIKey          string        `mapstructure:"mailgunApiKey"`
 	Access_Token_Duration  time.Duration `mapstructure:"accessTokenDuration"`
@@ -50,7 +50,7 @@ func LoadConfig(path string) (config Config, err error) {
 		name  string
 		value string
 	}{
-		{"DBString", config.DBString},
+		{"DBString", config.DATABASE_URL},
 	}
 
 	for _, field := range requiredFields {

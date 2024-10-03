@@ -15,7 +15,7 @@ func ConnectDB() *pgxpool.Pool {
 	if err != nil {
 		panic(err)
 	}
-	poolConfig, err := pgxpool.ParseConfig(config.DBString)
+	poolConfig, err := pgxpool.ParseConfig(config.DATABASE_URL)
 	if err != nil {
 		log.Fatalf("Unable to parse database connection string: %v", err)
 	}
