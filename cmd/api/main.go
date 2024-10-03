@@ -33,7 +33,7 @@ func main() {
 
 	db := connection.ConnectDB()
 	defer db.Close()
-	r := router.Router(l, v, db)
+	r := router.Router(l, v, db, &config)
 
 	server := &http.Server{
 		Addr:         config.PORT,

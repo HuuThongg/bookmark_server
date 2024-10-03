@@ -2,6 +2,7 @@ package router
 
 import (
 	"bookmark/api"
+	"bookmark/util"
 
 	cm "bookmark/middleware"
 
@@ -13,9 +14,9 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func Router(l *zerolog.Logger, v *validator.Validate, db *pgxpool.Pool) *chi.Mux {
+func Router(l *zerolog.Logger, v *validator.Validate, db *pgxpool.Pool, config *util.Config) *chi.Mux {
 	r := chi.NewRouter()
-	a := api.NewAPI(l, v, db)
+	a := api.NewAPI(l, v, db, config)
 
 	r.Use(cors.Handler(cors.Options{
 		// AllowedOrigins:   []string{"https://foo.com"}, // Use this to allow specific origin hosts

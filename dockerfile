@@ -11,6 +11,8 @@ RUN go mod download
 # Copy the entire application code
 COPY . .
 
+# Copy config.env
+# COPY config.env /app/config.env
 # Build the Go application for Linux amd64
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o main ./cmd/api/main.go
 
@@ -18,14 +20,15 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o main ./cmd/api/main.go
 FROM alpine:latest
 
 # Install necessary packages (e.g., for PostgreSQL support)
-RUN apk --no-cache add ca-certificates
+#RUN apk --no-cache add ca-certificates
 
 # Set the working directory in the final image
 WORKDIR /root/
 
 # Copy the binary from the builder stage
 COPY --from=builder /app/main .
-
+# Copy the config.env file from the builder stage
+# COPY --from=builder /app/config.env .
 # Expose the port that the application will run on
 EXPOSE 8080
 

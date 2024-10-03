@@ -2,3 +2,4 @@
 ~/.config/google-chrome
 *.json
 ~/.config/chromium
+bin/
