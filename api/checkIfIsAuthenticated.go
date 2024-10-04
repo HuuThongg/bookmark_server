@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"time"
 
 	"bookmark/auth"
 
@@ -128,8 +129,8 @@ func (h *API) CheckIfIsAuthenticated(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("end getting account")
 	fmt.Println("account time", account.LastLogin.Time.UTC())
-	fmt.Println("payload time", payload.IssuedAt.Time.UTC())
-	if account.LastLogin.Time.UTC() != payload.IssuedAt.Time.UTC() {
+	fmt.Println("payload time", payload.IssuedAt.Time.UTC().Truncate(time.Microsecond))
+	if account.LastLogin.Time.UTC() != payload.IssuedAt.Time.UTC().Truncate(time.Microsecond) {
 		util.Response(w, "user not logged in", http.StatusUnauthorized)
 		return
 	}
