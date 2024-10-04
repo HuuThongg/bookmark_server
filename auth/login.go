@@ -32,11 +32,11 @@ func LoginUser(account sqlc.Account, q *sqlc.Queries, ctx context.Context) (stri
 		return "", "", http.Cookie{}
 	}
 	refreshTokenCookie := http.Cookie{
-		Name:    "refreshTokenCookie",
-		Value:   refreshToken,
-		Path:    "/",
-		Expires: refreshTokenPayload.Expiry.Time,
-		// Secure:   true,
+		Name:     "refreshTokenCookie",
+		Value:    refreshToken,
+		Path:     "/",
+		Expires:  refreshTokenPayload.Expiry.Time,
+		Secure:   false,
 		SameSite: http.SameSite(http.SameSiteStrictMode),
 		HttpOnly: true,
 	}

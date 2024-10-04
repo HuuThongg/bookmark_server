@@ -68,7 +68,7 @@ func (h *API) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		Value:    refreshToken,
 		Path:     "/",
 		Expires:  refreshTokenPayload.Expiry.Time,
-		Secure:   true,
+		Secure:   false,
 		SameSite: http.SameSite(http.SameSiteStrictMode),
 		HttpOnly: true,
 	}
