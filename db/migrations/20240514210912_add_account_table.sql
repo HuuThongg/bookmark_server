@@ -20,7 +20,7 @@ SELECT 'up SQL query';
 -- +goose StatementEnd
 
 -- +goose Down
-DROP TABLE IF EXISTS account;
+DROP TABLE IF EXISTS account CASCADE;
 -- +goose StatementBegin
 SELECT 'down SQL query';
 -- +goose StatementEnd

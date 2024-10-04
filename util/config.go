@@ -34,7 +34,6 @@ func LoadConfig(path string) (config Config, err error) {
 	if err := godotenv.Load(); err != nil {
 		fmt.Println("No .env file found or error loading .env file")
 	}
-	fmt.Println("LoadConfig path: ", path)
 
 	config.DATABASE_URL = os.Getenv("DATABASE_URL")
 	// config.MAILGUN_DOMAIN = os.Getenv("MAILGUN_DOMAIN")

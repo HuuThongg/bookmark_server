@@ -233,7 +233,7 @@ func (h *API) SignIn(w http.ResponseWriter, r *http.Request) {
 		Name:     "is_authenticate",
 		Value:    "true",
 		Path:     "/",
-		HttpOnly: true,  // Prevent JavaScript access
+		HttpOnly: false, // Prevent JavaScript access
 		Secure:   false, // Use only on HTTPS
 		SameSite: http.SameSiteLaxMode,
 		Expires:  time.Now().Add(24 * time.Hour), // Set expiration

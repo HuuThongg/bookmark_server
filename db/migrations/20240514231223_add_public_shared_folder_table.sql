@@ -18,6 +18,7 @@ SELECT 'up SQL query';
 -- +goose StatementEnd
 
 -- +goose Down
+DROP TYPE collection_access_level CASCADE;
 DROP TABLE IF EXISTS public_shared_collection;
 -- +goose StatementBegin
 SELECT 'down SQL query';

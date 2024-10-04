@@ -1,12 +1,9 @@
 package api
 
 import (
-	"bytes"
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"sync"
@@ -36,18 +33,18 @@ func (t token) Validate(requestValidationChan chan error) error {
 }
 
 func (h *API) CheckIfIsAuthenticated(w http.ResponseWriter, r *http.Request) {
-	body, err1 := io.ReadAll(r.Body)
-	if err1 != nil {
-		log.Printf("failed to read request body: %v", err1)
-		util.Response(w, errors.New("failed to read request body").Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Log the raw request body
-	log.Printf("Request body: %s", string(body))
-
-	// Reset the body so it can be read again by json.NewDecoder
-	r.Body = io.NopCloser(bytes.NewBuffer(body))
+	// body, err1 := io.ReadAll(r.Body)
+	// if err1 != nil {
+	// 	log.Printf("failed to read request body: %v", err1)
+	// 	util.Response(w, errors.New("failed to read request body").Error(), http.StatusInternalServerError)
+	// 	return
+	// }
+	//
+	// // Log the raw request body
+	// log.Printf("Request body: %s", string(body))
+	//
+	// // Reset the body so it can be read again by json.NewDecoder
+	// r.Body = io.NopCloser(bytes.NewBuffer(body))
 	data := json.NewDecoder(r.Body)
 
 	data.DisallowUnknownFields()
@@ -120,8 +117,7 @@ func (h *API) CheckIfIsAuthenticated(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	fmt.Println("account", account.LastLogin)
-	fmt.Println("payload", payload.IssuedAt)
+
 	if account.LastLogin.Time.UTC() != payload.IssuedAt.Time.UTC() {
 		util.Response(w, "user not logged in", http.StatusUnauthorized)
 		return
