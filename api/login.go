@@ -197,7 +197,7 @@ func (h *API) SignIn(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		Expires:  refreshTokenPayload.Expiry.Time,
 		Secure:   false,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: http.SameSiteNoneMode,
 		HttpOnly: false,
 	}
 	http.SetCookie(w, &refreshTokenCookie)
@@ -235,7 +235,7 @@ func (h *API) SignIn(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		HttpOnly: false, // Prevent JavaScript access
 		Secure:   false, // Use only on HTTPS
-		SameSite: http.SameSiteLaxMode,
+		SameSite: http.SameSiteNoneMode,
 		Expires:  time.Now().Add(24 * time.Hour), // Set expiration
 	})
 	util.JsonResponse(w, res)

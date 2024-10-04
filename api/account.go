@@ -202,7 +202,7 @@ func loginUser(account sqlc.Account, w http.ResponseWriter, h *API, config util.
 		Path:     "/",
 		Expires:  refreshTokenPayload.Expiry.Time,
 		Secure:   false,
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteNoneMode,
 		HttpOnly: true,
 	}
 
@@ -214,7 +214,7 @@ func loginUser(account sqlc.Account, w http.ResponseWriter, h *API, config util.
 		Path:     "/",
 		HttpOnly: false, // Prevent JavaScript access
 		Secure:   false, // Use only on HTTPS
-		SameSite: http.SameSiteLaxMode,
+		SameSite: http.SameSiteNoneMode,
 		Expires:  time.Now().Add(24 * time.Hour), // Set expiration
 	})
 	newAccount, err := q.GetAccount(ctx, account.ID)

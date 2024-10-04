@@ -37,7 +37,7 @@ func LoginUser(account sqlc.Account, q *sqlc.Queries, ctx context.Context) (stri
 		Path:     "/",
 		Expires:  refreshTokenPayload.Expiry.Time,
 		Secure:   false,
-		SameSite: http.SameSite(http.SameSiteStrictMode),
+		SameSite: http.SameSite(http.SameSiteNoneMode),
 		HttpOnly: true,
 	}
 	createAccountSessionParams := sqlc.CreateAccountSessionParams{
