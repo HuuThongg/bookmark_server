@@ -3,6 +3,7 @@ package auth
 import (
 	"bookmark/util"
 	"errors"
+	"fmt"
 	"log"
 	"time"
 
@@ -67,6 +68,8 @@ func VerifyToken(signed string) (*PayLoad, error) {
 	}
 
 	parser := paseto.NewParser()
+	fmt.Println("publicKey", publicKey)
+	fmt.Println("signed: ", signed)
 	token, err := parser.ParseV4Public(publicKey, signed, nil)
 	if err != nil {
 		log.Printf("token parse error: %v", err.Error())
