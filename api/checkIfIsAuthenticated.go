@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"sync"
 
@@ -53,16 +54,21 @@ func (h *API) CheckIfIsAuthenticated(w http.ResponseWriter, r *http.Request) {
 	var req token
 
 	if err := data.Decode(&req); err != nil {
+
 		if e, ok := err.(*json.SyntaxError); ok {
+			fmt.Println("failed to decode request")
 			log.Error().Err(e).Msg("failed to decode request")
 			util.Response(w, errors.New("something went wrong").Error(), http.StatusInternalServerError)
 			return
 		} else {
+
+			fmt.Println("access_token is empty")
 			log.Error().Err(e).Msg("failed to decode request!")
 			util.Response(w, errors.New("something went wrong").Error(), http.StatusInternalServerError)
 			return
 		}
 	}
+	fmt.Println("access_token: ", req.Token)
 	requestValidationChan := make(chan error, 1)
 
 	var wg sync.WaitGroup

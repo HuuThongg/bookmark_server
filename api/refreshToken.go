@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -22,7 +23,13 @@ func (h *API) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		util.Response(w, "something went wrong", http.StatusInternalServerError)
 		return
 	}
-
+	cc, errr := r.Cookie("is_authenticate")
+	if errr != nil {
+		log.Error().Err(errr).Msg("is_authenticate is empty")
+		util.Response(w, "something went wrong", http.StatusInternalServerError)
+		return
+	}
+	fmt.Println("is_authenticate: ", cc)
 	payload, err := auth.VerifyToken(c.Value)
 	if err != nil {
 		util.Response(w, err.Error(), http.StatusUnauthorized)
