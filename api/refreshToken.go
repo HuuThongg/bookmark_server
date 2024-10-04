@@ -3,7 +3,6 @@ package api
 import (
 	"database/sql"
 	"errors"
-	"log"
 	"net/http"
 	"time"
 
@@ -16,9 +15,10 @@ import (
 )
 
 func (h *API) RefreshToken(w http.ResponseWriter, r *http.Request) {
+	log := h.logger.With().Str("func", "RefreshToken").Logger()
 	c, err := r.Cookie("refreshTokenCookie")
 	if err != nil {
-		log.Println(err)
+		log.Error().Err(err).Msg("refreshTokenCookie is empty")
 		util.Response(w, "something went wrong", http.StatusInternalServerError)
 		return
 	}
@@ -34,31 +34,29 @@ func (h *API) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	account, err := queries.GetAccount(r.Context(), payload.AccountID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+
+			log.Error().Err(err).Msg("account not found")
 			util.Response(w, "account not found", http.StatusUnauthorized)
 			return
 		}
 
+		log.Error().Err(err).Msg("cannot perform GetAccount")
 		util.Response(w, "something went wrong", http.StatusInternalServerError)
 		return
 	}
 
-	config, err := util.LoadConfig(".")
+	accessToken, accessTokenPayload, err := auth.CreateToken(account.ID, time.Now(), h.config.Access_Token_Duration)
 	if err != nil {
-		log.Printf("failed to load config file with err: %v", err)
+
+		log.Error().Err(err).Msg("failed to create access token")
 		util.Response(w, errors.New("something went wrong").Error(), http.StatusInternalServerError)
 		return
 	}
 
-	accessToken, accessTokenPayload, err := auth.CreateToken(account.ID, time.Now(), config.Access_Token_Duration)
+	refreshToken, refreshTokenPayload, err := auth.CreateToken(account.ID, accessTokenPayload.IssuedAt.Time, h.config.Refresh_Token_Duration)
 	if err != nil {
-		log.Printf("failed to create access token with err: %v", err)
-		util.Response(w, errors.New("something went wrong").Error(), http.StatusInternalServerError)
-		return
-	}
 
-	refreshToken, refreshTokenPayload, err := auth.CreateToken(account.ID, accessTokenPayload.IssuedAt.Time, config.Refresh_Token_Duration)
-	if err != nil {
-		log.Printf("failed to create refresh token with err: %v", err)
+		log.Error().Err(err).Msg("Faile to create refreshToken")
 		util.Response(w, errors.New("something went wrong").Error(), http.StatusInternalServerError)
 		return
 	}
@@ -89,7 +87,9 @@ func (h *API) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		var pgErr *pgconn.PgError
 
 		if errors.As(err, &pgErr) {
-			log.Printf("failed co create session with err: %s", pgErr.Message)
+			// log.Printf("failed co create session with err: %s", pgErr.Message)
+
+			log.Error().Err(err).Msgf("Faile to create refreshToken with err: %s ", pgErr.Message)
 			util.Response(w, errors.New("something went wrong").Error(), http.StatusInternalServerError)
 			return
 		} else {
@@ -102,10 +102,11 @@ func (h *API) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	account, err = queries.GetAccount(r.Context(), account.ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			log.Error().Err(err).Msg("Account not found")
 			util.Response(w, "account not found", http.StatusUnauthorized)
 			return
 		}
-
+		log.Error().Err(err)
 		util.Response(w, "something went wrong", http.StatusInternalServerError)
 		return
 	}

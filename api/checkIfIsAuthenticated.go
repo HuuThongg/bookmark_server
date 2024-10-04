@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"sync"
 
@@ -45,6 +44,8 @@ func (h *API) CheckIfIsAuthenticated(w http.ResponseWriter, r *http.Request) {
 	//
 	// // Reset the body so it can be read again by json.NewDecoder
 	// r.Body = io.NopCloser(bytes.NewBuffer(body))
+
+	log := h.logger.With().Str("func", "CheckIfIsAuthenticated").Logger()
 	data := json.NewDecoder(r.Body)
 
 	data.DisallowUnknownFields()
@@ -53,11 +54,11 @@ func (h *API) CheckIfIsAuthenticated(w http.ResponseWriter, r *http.Request) {
 
 	if err := data.Decode(&req); err != nil {
 		if e, ok := err.(*json.SyntaxError); ok {
-			log.Printf("failed to decode request body with err: %v", e)
+			log.Error().Err(e).Msg("failed to decode request")
 			util.Response(w, errors.New("something went wrong").Error(), http.StatusInternalServerError)
 			return
 		} else {
-			log.Printf("failed to decode request body with err: %v", err)
+			log.Error().Err(e).Msg("failed to decode request!")
 			util.Response(w, errors.New("something went wrong").Error(), http.StatusInternalServerError)
 			return
 		}
@@ -80,7 +81,7 @@ func (h *API) CheckIfIsAuthenticated(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if e, ok := err.(validation.InternalError); ok {
 			// an internal error happened
-			log.Printf("an internal server error occured while validation request body: %v", e.InternalError())
+			log.Error().Err(e.InternalError()).Msg("an internal sver error occured while validation request body")
 			util.Response(w, errors.New("something went wrong").Error(), http.StatusInternalServerError)
 			return
 		} else {
@@ -104,15 +105,16 @@ func (h *API) CheckIfIsAuthenticated(w http.ResponseWriter, r *http.Request) {
 		var pgErr *pgconn.PgError
 
 		if errors.As(err, &pgErr) {
-			log.Printf("failed to get account with err: %v", pgErr)
+			log.Error().Err(err).Msg("failed get account")
 			util.Response(w, errors.New("something went wrong").Error(), http.StatusInternalServerError)
 			return
 		} else if errors.Is(err, sql.ErrNoRows) {
-			log.Println("account not found")
+
+			log.Error().Err(err).Msg("account not found,now row")
 			util.Response(w, errors.New("account not found").Error(), http.StatusUnauthorized)
 			return
 		} else {
-			log.Printf("failed to get account with err: %v", err)
+			log.Error().Err(err).Msg("failed to get account")
 			util.Response(w, errors.New("something went wrong").Error(), http.StatusInternalServerError)
 			return
 		}
