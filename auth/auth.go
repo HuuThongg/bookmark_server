@@ -75,7 +75,7 @@ func VerifyToken(signed string) (*PayLoad, error) {
 		log.Printf("token parse error: %v", err.Error())
 		return nil, err
 	}
-
+	fmt.Println("token parse: ", token)
 	var payload PayLoad
 	if err := token.Get("payload", &payload); err != nil {
 		log.Printf("get payload error: %v", err.Error())
@@ -84,5 +84,6 @@ func VerifyToken(signed string) (*PayLoad, error) {
 	if time.Now().UTC().After(payload.Expiry.Time) {
 		return nil, ErrTokenExpired
 	}
+	fmt.Println("payload get")
 	return &payload, nil
 }

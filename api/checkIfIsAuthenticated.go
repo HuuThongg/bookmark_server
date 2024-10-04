@@ -99,13 +99,13 @@ func (h *API) CheckIfIsAuthenticated(w http.ResponseWriter, r *http.Request) {
 
 	payload, err := auth.VerifyToken(req.Token)
 	if err != nil {
-		log.Println(err)
+		log.Printf("payload good %v", err)
 		util.Response(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
 	q := sqlc.New(h.db)
-
+	log.Println("start getting account")
 	account, err := q.GetAccount(r.Context(), int64(payload.AccountID))
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -126,6 +126,7 @@ func (h *API) CheckIfIsAuthenticated(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	log.Println("end getting account")
 	if account.LastLogin.Time.UTC() != payload.IssuedAt.Time.UTC() {
 		util.Response(w, "user not logged in", http.StatusUnauthorized)
 		return
