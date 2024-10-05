@@ -34,7 +34,7 @@ func (p *passwordResetMail) SendPasswordResetEmail() {
 		{
 			From: &mailjet.RecipientV31{
 				Email: "longhuuthe1@gmail.com",
-				Name:  "HUU THONG",
+				Name:  "Bookmark H&T",
 			},
 			To: &mailjet.RecipientsV31{
 				mailjet.RecipientV31{
@@ -43,7 +43,7 @@ func (p *passwordResetMail) SendPasswordResetEmail() {
 				},
 			},
 			Subject:  "Reset your password",
-			HTMLPart: fmt.Sprintf(`<p>Hey %s 👋</p><p>You requested to reset your linkspace password.</p><a href="http://localhost:5173/accounts/reset_password?token=%s">Click here to reset your password.</a><p>Regards,</P><p>Huu thong, <a href="beta.linkspace.space">Linkspace</a></p>`, p.Name, p.Token),
+			HTMLPart: fmt.Sprintf(`<p>Hey %s 👋</p><p>You requested to reset your bookmark H&T password.</p><a href="%s/account/recover?token=%s">Click here to reset your password.</a><p>Regards,</p><p>Huu thong, <a href="beta.linkspace.space">Linkspace</a></p>`, p.Name, config.HOST, p.Token),
 		},
 	}
 

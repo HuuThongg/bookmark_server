@@ -40,7 +40,7 @@ func (a accountNotFoundEmail) SendAccountNotFoundEmail() {
 				},
 			},
 			Subject:  fmt.Sprintf("%s is not registered", a.Recipient),
-			HTMLPart: fmt.Sprintf(`<p>Hey %s 👋</p><p>You requested to reset your password at linkspace but your email is not registered with us yet.</p><a href="http://localhost:5173/accounts/email">Click here to create your account.</a><br/><p>Regards,</P><p>Haron, <a href="beta.linkspace.space">Linkspace</a></p>`, strings.Split(a.Recipient, "@")[0]),
+			HTMLPart: fmt.Sprintf(`<p>Hey %s 👋</p><p>You requested to reset your password at huuthong bookmark but your email is not registered with us yet.</p><a href="http://localhost:5173/accounts/recover">Click here to create your account.</a><br/><p>Regards,</P><p>Haron, <a href="beta.linkspace.space">Linkspace</a></p>`, strings.Split(a.Recipient, "@")[0]),
 		},
 	}
 

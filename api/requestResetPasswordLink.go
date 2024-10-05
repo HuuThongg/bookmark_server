@@ -1,8 +1,6 @@
 package api
 
 import (
-	"bookmark/db/sqlc"
-	"bookmark/util"
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
@@ -11,35 +9,45 @@ import (
 	"net/http"
 	"time"
 
-	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"bookmark/db/sqlc"
 
-	e "bookmark/api/resource/common/err"
+	"bookmark/mailjet"
+
+	"bookmark/util"
+
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-ozzo/ozzo-validation/v4/is"
+	"github.com/google/uuid"
 )
 
-type createNewPasswordRequest struct {
-	Token    string `json:"token"`
-	Password string `json:"password"`
+type requestResetPasswordLinkRequest struct {
+	Email string `json:"email"`
 }
 
-func (c createNewPasswordRequest) validate() error {
-	return validation.ValidateStruct(&c,
-		validation.Field(&c.Token, validation.Required.Error("token is required"), validation.Length(1, 255).Error("name must be between 1 and 255 characters long")),
-		validation.Field(&c.Password, validation.Required.Error("password is required"), validation.Length(6, 1000).Error("password must be at least 6 characters long")),
+func (r requestResetPasswordLinkRequest) validate() error {
+	return validation.ValidateStruct(&r,
+		validation.Field(&r.Email, is.Email),
 	)
 }
 
-func (h *API) UpdatePassword(w http.ResponseWriter, r *http.Request) {
-
+func (h *API) RequestResetPasswordLink(w http.ResponseWriter, r *http.Request) {
 	body := json.NewDecoder(r.Body)
 
 	body.DisallowUnknownFields()
 
-	var req createNewPasswordRequest
+	var req requestResetPasswordLinkRequest
 
 	err := body.Decode(&req)
 	if err != nil {
-		e.ErrorInternalServer(w, err)
-		return
+		if e, ok := err.(*json.SyntaxError); ok {
+			log.Printf("failed to decode request body with err: %v", e)
+			util.Response(w, errors.New("something went wrong").Error(), http.StatusInternalServerError)
+			return
+		} else {
+			log.Printf("failed to decode request body with err: %v", err)
+			util.Response(w, errors.New("something went wrong").Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	err = req.validate()
@@ -51,49 +59,42 @@ func (h *API) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 
 	q := sqlc.New(h.db)
 
-	tokenHash := base64.StdEncoding.EncodeToString([]byte(req.Token))
-
-	token, err := q.GetPasswordResetToken(r.Context(), tokenHash)
-
+	account, err := q.GetAccountByEmail(r.Context(), req.Email)
 	if err != nil {
-		log.Println(err)
 		if errors.Is(err, sql.ErrNoRows) {
-			util.Response(w, "invalid password reset token", http.StatusUnauthorized)
+			mail := mailjet.NewAccountNotFoundEmail(req.Email)
+
+			mail.SendAccountNotFoundEmail()
+
+			util.Response(w, "reset password link has been sent", http.StatusOK)
+
 			return
 		} else {
+			log.Printf("could not get account by email: %v", err)
 			util.Response(w, "something went wrong", http.StatusInternalServerError)
 			return
 		}
 	}
-	err = q.DeletePasswordResetToken(r.Context(), tokenHash)
-	if err != nil {
-		log.Println(err)
-		util.Response(w, "something went wrong", http.StatusInternalServerError)
-		return
-	}
-	if time.Now().UTC().After(token.TokenExpiry.Time) {
-		util.Response(w, "expired password resset token", http.StatusUnauthorized)
-		return
+
+	token := uuid.NewString()
+
+	encodedToken := base64.StdEncoding.EncodeToString([]byte(token))
+
+	params := sqlc.CreatePasswordResetTokenParams{
+		AccountID:   account.ID,
+		TokenHash:   encodedToken,
+		TokenExpiry: util.ToTimestamptz(time.Now().UTC().Add(15 * time.Minute)),
 	}
 
-	hashedPassword, err := util.HashPassword(req.Password)
+	_, err = q.CreatePasswordResetToken(r.Context(), params)
 	if err != nil {
-		log.Println(err)
-		util.Response(w, "something went wrong", http.StatusInternalServerError)
-		return
-	}
-
-	updatePasswordParams := sqlc.UpdatePasswordParams{
-		AccountPassword: hashedPassword,
-		ID:              token.AccountID,
-	}
-	log.Println("-3")
-	err = q.UpdatePassword(r.Context(), updatePasswordParams)
-	if err != nil {
-		log.Println(err)
 		util.Response(w, "something went wrong", http.StatusInternalServerError)
 		return
 	}
 
-	util.Response(w, "password update successfully", http.StatusOK)
+	mail := mailjet.NewPasswordResetTokenMail(account.Fullname, account.Email, token)
+
+	mail.SendPasswordResetEmail()
+
+	util.Response(w, "reset password link has been sent", http.StatusOK)
 }

@@ -49,7 +49,7 @@ func Router(l *zerolog.Logger, v *validator.Validate, db *pgxpool.Pool, config *
 		//
 		// r.Get("/getLinksByAccountID/{accountID}", a.GetLinksByUserID)
 		//
-		// r.Post("/requestResetPasswordLink", a.RequestResetPasswordLink)
+		r.Post("/requestResetPasswordLink", a.RequestResetPasswordLink)
 		r.Patch("/updatePassword", a.UpdatePassword)
 		r.Post("/uploadHeroImage", a.UploadHeroImage)
 		// r.Get("/getCollectionAndInviterNames/{inviteToken}", h.GetCollectionAndInviterNames)
