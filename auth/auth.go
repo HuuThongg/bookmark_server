@@ -3,7 +3,6 @@ package auth
 import (
 	"bookmark/util"
 	"errors"
-	"fmt"
 	"log"
 	"time"
 
@@ -68,14 +67,12 @@ func VerifyToken(signed string) (*PayLoad, error) {
 	}
 
 	parser := paseto.NewParser()
-	fmt.Println("publicKey", publicKey)
-	fmt.Println("signed: ", signed)
+
 	token, err := parser.ParseV4Public(publicKey, signed, nil)
 	if err != nil {
 		log.Printf("token parse error: %v", err.Error())
 		return nil, err
 	}
-	fmt.Println("token parse: ", token)
 	var payload PayLoad
 	if err := token.Get("payload", &payload); err != nil {
 		log.Printf("get payload error: %v", err.Error())
@@ -84,6 +81,5 @@ func VerifyToken(signed string) (*PayLoad, error) {
 	if time.Now().UTC().After(payload.Expiry.Time) {
 		return nil, ErrTokenExpired
 	}
-	fmt.Println("payload get")
 	return &payload, nil
 }

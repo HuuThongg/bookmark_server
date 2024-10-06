@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -60,11 +59,9 @@ func getAndVerifyToken(r *http.Request) (*auth.PayLoad, error) {
 	token := strings.TrimPrefix(r.Header.Get("authorization"), "Bearer ")
 
 	if token == "" {
-		log.Println("token is empty or not in proper format!")
 		return nil, errors.New("token is empty or not in proper format")
 	}
 
-	fmt.Println("token", token)
 	payload, err := auth.VerifyToken(token)
 	if err != nil {
 		return nil, err
