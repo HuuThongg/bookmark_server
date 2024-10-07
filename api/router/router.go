@@ -102,6 +102,7 @@ func Router(l *zerolog.Logger, v *validator.Validate, db *pgxpool.Pool, config *
 			r.Get("/getRootLinks/{accountID}", a.GetRootLinks)
 			r.Get("/get_folder_links/{accountID}/{folderID}", a.GetFolderLinks)
 			r.Get("/searchLinks/{query}", a.SearchLinks)
+			r.Get("/all/{accountID}", a.GetAllLinks)
 		})
 	})
 	r.Get("/", a.Hello)

@@ -209,12 +209,13 @@ func (h *API) AddLink(w http.ResponseWriter, r *http.Request) {
 
 	// Measure screenshot fetching time
 	screenshotFetchStart := time.Now()
-	util.RodGetUrlScreenshot(page)
+	// util.RodGetUrlScreenshot(page)
+	screenShotBytes := util.RodGetUrlScreenshot(page)
 	urlScreenshotChan := make(chan string, 1)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		vultr.UploadLinkThumbnail(urlScreenshotChan)
+		vultr.UploadLinkThumbnail1(urlScreenshotChan, screenShotBytes)
 	}()
 	urlScreenshotLink := <-urlScreenshotChan
 	log.Printf("Screenshot fetching took %s", time.Since(screenshotFetchStart))
@@ -653,6 +654,32 @@ func (h *API) GetFolderLinks(w http.ResponseWriter, r *http.Request) {
 	// }
 
 	links, err := q.GetFolderLinks(r.Context(), pgtype.Text{String: folderID, Valid: true})
+	if err != nil {
+		e.ErrorInternalServer(w, err)
+		return
+	}
+
+	util.JsonResponse(w, links)
+}
+
+func (h *API) GetAllLinks(w http.ResponseWriter, r *http.Request) {
+	accontID, err := strconv.Atoi(chi.URLParam(r, "accountID"))
+	if err != nil {
+		e.ErrorInternalServer(w, err)
+		return
+	}
+
+	payload := r.Context().Value("payload").(*auth.PayLoad)
+
+	if int64(accontID) != payload.AccountID {
+		log.Println("account_id from request not equal to payload account_id")
+		util.Response(w, errors.New("account ids do not match").Error(), 404)
+		return
+	}
+
+	q := sqlc.New(h.db)
+
+	links, err := q.GetAllLinks(r.Context(), payload.AccountID)
 	if err != nil {
 		e.ErrorInternalServer(w, err)
 		return

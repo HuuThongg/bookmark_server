@@ -2,6 +2,7 @@ package vultr
 
 import (
 	"bookmark/util"
+	"bytes"
 	"fmt"
 	"log"
 	"os"
@@ -20,7 +21,7 @@ func UploadLinkThumbnail(linkThumbnailChannel chan string) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := util.LoadImage(imgFileChan, "a.png"); err != nil {
+		if err := util.LoadImage(imgFileChan, "a.jpeg"); err != nil {
 			log.Panicf("could not load link thumbnail: %v", err)
 		}
 	}()
@@ -56,4 +57,43 @@ func UploadLinkThumbnail(linkThumbnailChannel chan string) {
 	log.Printf("link thumbnail url: %s", fmt.Sprintf("%s/%s", config.BlackBlazeHostName, *object.Key))
 	linkThumbnailChannel <- fmt.Sprintf("%s/link-thumbnails/%s", config.BlackBlazeHostName, *object.Key)
 	wg.Wait()
+}
+
+func UploadLinkThumbnail1(linkThumbnailChannel chan string, screenShotBytes []byte) {
+	resizedImgBytes, imageErr := util.ResizeImage(screenShotBytes, 400, 0)
+	if imageErr != nil {
+		log.Println("image err", imageErr)
+	}
+
+	config, err := util.LoadConfig(".")
+	if err != nil {
+		log.Panicf("could not load config file: %v", err)
+	}
+
+	s3Config := &aws.Config{
+		Credentials:      credentials.NewStaticCredentials(config.BlackBlazeKeyId, config.BlackBlazeSecretKey, ""),
+		Endpoint:         aws.String(config.BlackBlazeHostName),
+		S3ForcePathStyle: aws.Bool(false),
+		Region:           aws.String("us-west-002"),
+	}
+
+	newSession, err := session.NewSession(s3Config)
+	if err != nil {
+		log.Panicf("could not create a new vultr s3 session: %v", err)
+	}
+	s3Client := s3.New(newSession)
+	object := s3.PutObjectInput{
+		Bucket:        aws.String("/link-thumbnails"),
+		Key:           aws.String(uuid.NewString()),
+		Body:          bytes.NewReader(resizedImgBytes),
+		ContentLength: aws.Int64(int64(len(resizedImgBytes))),
+		// ContentType:   aws.String("image/jpeg"),
+	}
+	_, err = s3Client.PutObject(&object)
+	if err != nil {
+		log.Panicf("could not upload link thumbnail to vultr: %v", err)
+	}
+
+	log.Printf("link thumbnail url: %s", fmt.Sprintf("%s/%s", config.BlackBlazeHostName, *object.Key))
+	linkThumbnailChannel <- fmt.Sprintf("%s/link-thumbnails/%s", config.BlackBlazeHostName, *object.Key)
 }

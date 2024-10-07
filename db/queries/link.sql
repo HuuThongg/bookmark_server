@@ -6,6 +6,9 @@ RETURNING *;
 -- name: GetRootLinks :many
 SELECT * FROM link WHERE account_id = $1 AND folder_id IS NULL AND deleted_at IS NULL ORDER BY added_at DESC;
 
+-- name: GetAllLinks :many
+SELECT * FROM link WHERE account_id = $1  AND deleted_at IS NULL ORDER BY added_at DESC;
+
 -- name: GetFolderLinks :many
 SELECT * FROM link WHERE folder_id = $1 AND deleted_at IS NULL ORDER BY added_at DESC;
 
@@ -49,3 +52,11 @@ LIMIT 1;
 
 -- name: GetLinksByUserID :many
 SELECT * FROM link WHERE account_id = $1;
+
+
+-- name: AddNote :exec
+UPDATE link
+SET link_notes = $2,
+    updated_at = CURRENT_TIMESTAMP
+WHERE link_id = $1 AND account_id = $3;
+

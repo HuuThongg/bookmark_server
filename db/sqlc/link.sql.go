@@ -262,6 +262,44 @@ func (q *Queries) GetRootLinks(ctx context.Context, accountID int64) ([]Link, er
 	return items, nil
 }
 
+const getAllLinks = `-- name: getAllLinks :many
+SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col FROM link WHERE account_id = $1 AND deleted_at IS NULL ORDER BY added_at DESC
+`
+
+func (q *Queries) GetAllLinks(ctx context.Context, accountID int64) ([]Link, error) {
+	rows, err := q.db.Query(ctx, getAllLinks, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Link
+	for rows.Next() {
+		var i Link
+		if err := rows.Scan(
+			&i.LinkID,
+			&i.LinkTitle,
+			&i.LinkThumbnail,
+			&i.LinkFavicon,
+			&i.LinkHostname,
+			&i.LinkUrl,
+			&i.LinkNotes,
+			&i.AccountID,
+			&i.FolderID,
+			&i.AddedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.TextsearchableIndexCol,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const moveLinkToFolder = `-- name: MoveLinkToFolder :one
 UPDATE link SET folder_id = $1 WHERE link_id = $2 RETURNING link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col
 `
@@ -488,3 +526,15 @@ func (q *Queries) SearchLinkz(ctx context.Context, arg SearchLinkzParams) ([]Lin
 	}
 	return items, nil
 }
+
+// const addNote = `-- name: AddNote :exec
+// UPDATE link
+// SET link_notes = $2,
+//     updated_at = CURRENT_TIMESTAMP
+// WHERE link_id = $1 AND account_id = $3;
+// `
+//
+// func (q *Queries) AddNote(ctx context.Context, link_id text, accountID , l) error {
+// 	_, err := q.db.Exec(ctx, deleteInvite, inviteToken)
+// 	return err
+// }
