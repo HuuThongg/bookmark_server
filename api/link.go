@@ -20,6 +20,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
+	"github.com/go-playground/validator/v10"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -232,13 +233,15 @@ func (h *API) AddLink(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Random string generation took %s", time.Since(randomStringGenStart))
 
 	addLinkParams := sqlc.AddLinkParams{
-		LinkID:        linkID,
-		LinkTitle:     urlTitle,
-		LinkHostname:  host,
-		LinkUrl:       req.URL,
-		LinkFavicon:   favicon,
-		AccountID:     payload.AccountID,
-		FolderID:      req.FolderId, // Ensure this matches the expected type
+		LinkID:       linkID,
+		LinkTitle:    urlTitle,
+		LinkHostname: host,
+		LinkUrl:      req.URL,
+		LinkFavicon:  favicon,
+		AccountID:    payload.AccountID,
+		// FolderID:      req.FolderId, // Ensure this matches the expected type
+
+		FolderID:      pgtype.Text{Valid: true, String: req.FolderId}, // Ensure this matches the expected type
 		LinkThumbnail: urlScreenshotLink,
 	}
 
@@ -581,13 +584,18 @@ func (h *API) DeleteLinksForever(w http.ResponseWriter, r *http.Request) {
 
 	q := sqlc.New(h.db)
 
+	payload := r.Context().Value("payload").(*auth.PayLoad)
 	var links []sqlc.Link
 
 	for _, linkID := range req.LinkIDS {
 		// get link
-		link, err := q.GetLink(r.Context(), linkID)
+		params := sqlc.GetLinkParams{
+			LinkID:    linkID,
+			AccountID: payload.AccountID,
+		}
+		link, err := q.GetLink(r.Context(), params)
 		if err != nil {
-			log.Println(err)
+			log.Println("can get link", err)
 			util.Response(w, "something went wrong", http.StatusInternalServerError)
 			return
 		}
@@ -665,6 +673,7 @@ func (h *API) GetFolderLinks(w http.ResponseWriter, r *http.Request) {
 func (h *API) GetAllLinks(w http.ResponseWriter, r *http.Request) {
 	accontID, err := strconv.Atoi(chi.URLParam(r, "accountID"))
 	if err != nil {
+		h.logger.Error().Err(err).Msg("accountID is Empty")
 		e.ErrorInternalServer(w, err)
 		return
 	}
@@ -681,9 +690,169 @@ func (h *API) GetAllLinks(w http.ResponseWriter, r *http.Request) {
 
 	links, err := q.GetAllLinks(r.Context(), payload.AccountID)
 	if err != nil {
+
+		h.logger.Error().Err(err).Msg("can not gett all Link")
 		e.ErrorInternalServer(w, err)
 		return
 	}
 
 	util.JsonResponse(w, links)
+}
+
+type AddNoteRequest struct {
+	Note   string `json:"note" validate:"required,max=1000"`
+	LinkID string `json:"link_id" validate:"required"`
+}
+
+func (h *API) AddNote(w http.ResponseWriter, r *http.Request) {
+
+	var addNoteRequest AddNoteRequest
+
+	// Decode the request body
+	if err := json.NewDecoder(r.Body).Decode(&addNoteRequest); err != nil {
+		h.logger.Error().Err(err).Msg("Cannot decode addNoteRequest")
+		e.ErrorDecodingRequest(w, err)
+		return
+	}
+
+	if err := h.validator.Struct(addNoteRequest); err != nil {
+		for _, err := range err.(validator.ValidationErrors) {
+			h.logger.Error().Err(err).Msg("Validation error")
+		}
+		util.JsonResponse(w, "Validation failed", http.StatusBadRequest)
+		return
+	}
+	payload := r.Context().Value("payload").(*auth.PayLoad)
+
+	q := sqlc.New(h.db)
+	params := sqlc.AddNoteParams{
+		AccountID: payload.AccountID,
+		LinkID:    addNoteRequest.LinkID,
+		LinkNotes: addNoteRequest.Note,
+	}
+	link, err := q.AddNote(r.Context(), params)
+	if err != nil {
+
+		h.logger.Error().Err(err).Msg("can not add a note")
+		e.ErrorInternalServer(w, err)
+		return
+	}
+
+	util.JsonResponse(w, link)
+}
+
+func (h *API) GetSingleLink(w http.ResponseWriter, r *http.Request) {
+	linkID := chi.URLParam(r, "linkID")
+	if linkID == "" {
+		h.logger.Error().Msg("LinkID is Empty")
+		e.ErrorInternalServer(w, errors.New("linkId is empty"))
+		return
+	}
+
+	payload := r.Context().Value("payload").(*auth.PayLoad)
+
+	q := sqlc.New(h.db)
+	params := sqlc.GetLinkParams{
+		LinkID:    linkID,
+		AccountID: payload.AccountID,
+	}
+
+	link, errLink := q.GetLink(r.Context(), params)
+	if errLink != nil {
+		h.logger.Error().Msg("cannot get link")
+		e.ErrorInternalServer(w, errors.New("cannot get link"))
+		return
+
+	}
+	util.JsonResponse(w, link)
+}
+
+type ChangeTitleReq struct {
+	LinkTitle string `json:"link_title" validate:"required,max=1000"`
+	LinkID    string `json:"link_id" validate:"required"`
+}
+
+func (h *API) ChangeLinkTitle(w http.ResponseWriter, r *http.Request) {
+
+	var changeTitleReq ChangeTitleReq
+
+	body := json.NewDecoder(r.Body)
+
+	body.DisallowUnknownFields()
+	if err := body.Decode(&changeTitleReq); err != nil {
+		h.logger.Error().Err(err).Msg("Cannot decode ChangeTitleReq")
+		e.ErrorDecodingRequest(w, err)
+		return
+	}
+
+	if err := h.validator.Struct(changeTitleReq); err != nil {
+		for _, err := range err.(validator.ValidationErrors) {
+			h.logger.Error().Err(err).Msg("Validation error")
+		}
+		util.JsonResponse(w, "Validation failed", http.StatusBadRequest)
+		return
+	}
+	payload := r.Context().Value("payload").(*auth.PayLoad)
+
+	q := sqlc.New(h.db)
+	log.Println("new title", changeTitleReq.LinkTitle)
+	params := sqlc.ChangeLinkTitleParams{
+		AccountID: payload.AccountID,
+		LinkID:    changeTitleReq.LinkID,
+		LinkTitle: changeTitleReq.LinkTitle,
+	}
+	newTitle, err := q.ChangeLinkTitle(r.Context(), params)
+	if err != nil {
+
+		h.logger.Error().Err(err).Msg("can notchange link title")
+		e.ErrorInternalServer(w, err)
+		return
+	}
+
+	util.JsonResponse(w, newTitle)
+}
+
+type ChangeLinkURL struct {
+	LinkID  string `json:"link_id" validate:"required,max=1000"`
+	LinkURL string `json:"link_URL" validate:"required"`
+}
+
+func (h *API) ChangeLinkURL(w http.ResponseWriter, r *http.Request) {
+
+	var changeURLReq ChangeLinkURL
+
+	body := json.NewDecoder(r.Body)
+
+	body.DisallowUnknownFields()
+	if err := body.Decode(&changeURLReq); err != nil {
+		h.logger.Error().Err(err).Msg("Cannot decode ChangeLinkURL")
+		e.ErrorDecodingRequest(w, err)
+		return
+	}
+
+	if err := h.validator.Struct(changeURLReq); err != nil {
+		for _, err := range err.(validator.ValidationErrors) {
+			h.logger.Error().Err(err).Msg("Validation error")
+		}
+		util.JsonResponse(w, "Validation failed", http.StatusBadRequest)
+		return
+	}
+	payload := r.Context().Value("payload").(*auth.PayLoad)
+
+	q := sqlc.New(h.db)
+	params := sqlc.ChangeLinkURLParams{
+		AccountID: payload.AccountID,
+		LinkID:    changeURLReq.LinkID,
+		LinkUrl:   changeURLReq.LinkURL,
+	}
+
+	newURL, err := q.ChangeLinkURL(r.Context(), params)
+	if err != nil {
+
+		h.logger.Error().Err(err).Msg("can notchange link title")
+		e.ErrorInternalServer(w, err)
+		return
+	}
+
+	util.JsonResponse(w, newURL)
 }

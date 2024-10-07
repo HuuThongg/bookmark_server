@@ -47,16 +47,30 @@ ORDER BY added_at DESC;
 
 -- name: GetLink :one
 SELECT * FROM link
-WHERE link_id = $1
+WHERE link_id = $1 AND account_id = $2
 LIMIT 1;
 
 -- name: GetLinksByUserID :many
 SELECT * FROM link WHERE account_id = $1;
 
 
--- name: AddNote :exec
+-- name: AddNote :one
 UPDATE link
 SET link_notes = $2,
     updated_at = CURRENT_TIMESTAMP
-WHERE link_id = $1 AND account_id = $3;
+WHERE link_id = $1 AND account_id = $3
+RETURNING *;
 
+-- name: ChangeLinkTitle :one
+UPDATE link
+SET link_title = $2,
+    updated_at = CURRENT_TIMESTAMP
+WHERE link_id = $1 AND account_id = $3
+RETURNING link_title;
+
+-- name: ChangeLinkURL :one
+UPDATE link
+SET link_url = $2,
+    updated_at = CURRENT_TIMESTAMP
+WHERE link_id = $1 AND account_id = $3
+RETURNING link_url;

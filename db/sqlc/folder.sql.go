@@ -222,6 +222,45 @@ func (q *Queries) GetFolderNodes(ctx context.Context, subfolderOf pgtype.Text) (
 	return items, nil
 }
 
+const getFoldersByAccountId = `-- name: GetFoldersByAccountId :many
+SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col
+FROM folder
+WHERE account_id = $1 AND folder_deleted_at IS NULL
+ORDER BY folder_created_at DESC
+`
+
+func (q *Queries) GetFoldersByAccountId(ctx context.Context, accountID int64) ([]Folder, error) {
+	rows, err := q.db.Query(ctx, getFoldersByAccountId, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Folder
+	for rows.Next() {
+		var i Folder
+		if err := rows.Scan(
+			&i.FolderID,
+			&i.AccountID,
+			&i.FolderName,
+			&i.Path,
+			&i.Label,
+			&i.Starred,
+			&i.FolderCreatedAt,
+			&i.FolderUpdatedAt,
+			&i.SubfolderOf,
+			&i.FolderDeletedAt,
+			&i.TextsearchableIndexCol,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getFoldersMovedToTrash = `-- name: GetFoldersMovedToTrash :many
 SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col FROM folder WHERE folder_deleted_at IS NOT NULL AND account_id = $1 ORDER BY folder_deleted_at DESC
 `
@@ -700,45 +739,4 @@ WHERE folder_id = $1
 func (q *Queries) UpdateParentFolderToNull(ctx context.Context, folderID string) error {
 	_, err := q.db.Exec(ctx, updateParentFolderToNull, folderID)
 	return err
-}
-
-const getFoldersByAccountId = `-- name: GetFoldersByAccountId :many
-SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col
-FROM folder
-WHERE account_id = $1 AND folder_deleted_at IS NULL
-ORDER BY folder_created_at DESC
-`
-
-func (q *Queries) GetFoldersByAccountId(ctx context.Context, accountId int64) ([]Folder, error) {
-	rows, err := q.db.Query(ctx, getFoldersByAccountId, accountId)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var items []Folder
-	for rows.Next() {
-		var i Folder
-		if err := rows.Scan(
-			&i.FolderID,
-			&i.AccountID,
-			&i.FolderName,
-			&i.Path,
-			&i.Label,
-			&i.Starred,
-			&i.FolderCreatedAt,
-			&i.FolderUpdatedAt,
-			&i.SubfolderOf,
-			&i.FolderDeletedAt,
-			&i.TextsearchableIndexCol,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return items, nil
 }

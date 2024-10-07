@@ -18,14 +18,14 @@ RETURNING link_id, link_title, link_thumbnail, link_favicon, link_hostname, link
 `
 
 type AddLinkParams struct {
-	LinkID        string `json:"link_id"`
-	LinkTitle     string `json:"link_title"`
-	LinkHostname  string `json:"link_hostname"`
-	LinkUrl       string `json:"link_url"`
-	LinkFavicon   string `json:"link_favicon"`
-	AccountID     int64  `json:"account_id"`
-	FolderID      string `json:"folder_id"`
-	LinkThumbnail string `json:"link_thumbnail"`
+	LinkID        string      `json:"link_id"`
+	LinkTitle     string      `json:"link_title"`
+	LinkHostname  string      `json:"link_hostname"`
+	LinkUrl       string      `json:"link_url"`
+	LinkFavicon   string      `json:"link_favicon"`
+	AccountID     int64       `json:"account_id"`
+	FolderID      pgtype.Text `json:"folder_id"`
+	LinkThumbnail string      `json:"link_thumbnail"`
 }
 
 func (q *Queries) AddLink(ctx context.Context, arg AddLinkParams) (Link, error) {
@@ -58,6 +58,83 @@ func (q *Queries) AddLink(ctx context.Context, arg AddLinkParams) (Link, error) 
 	return i, err
 }
 
+const addNote = `-- name: AddNote :one
+UPDATE link
+SET link_notes = $2,
+    updated_at = CURRENT_TIMESTAMP
+WHERE link_id = $1 AND account_id = $3
+RETURNING link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col
+`
+
+type AddNoteParams struct {
+	LinkID    string `json:"link_id"`
+	LinkNotes string `json:"link_notes"`
+	AccountID int64  `json:"account_id"`
+}
+
+func (q *Queries) AddNote(ctx context.Context, arg AddNoteParams) (Link, error) {
+	row := q.db.QueryRow(ctx, addNote, arg.LinkID, arg.LinkNotes, arg.AccountID)
+	var i Link
+	err := row.Scan(
+		&i.LinkID,
+		&i.LinkTitle,
+		&i.LinkThumbnail,
+		&i.LinkFavicon,
+		&i.LinkHostname,
+		&i.LinkUrl,
+		&i.LinkNotes,
+		&i.AccountID,
+		&i.FolderID,
+		&i.AddedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.TextsearchableIndexCol,
+	)
+	return i, err
+}
+
+const changeLinkTitle = `-- name: ChangeLinkTitle :one
+UPDATE link
+SET link_title = $2,
+    updated_at = CURRENT_TIMESTAMP
+WHERE link_id = $1 AND account_id = $3
+RETURNING link_title
+`
+
+type ChangeLinkTitleParams struct {
+	LinkID    string `json:"link_id"`
+	LinkTitle string `json:"link_title"`
+	AccountID int64  `json:"account_id"`
+}
+
+func (q *Queries) ChangeLinkTitle(ctx context.Context, arg ChangeLinkTitleParams) (string, error) {
+	row := q.db.QueryRow(ctx, changeLinkTitle, arg.LinkID, arg.LinkTitle, arg.AccountID)
+	var link_title string
+	err := row.Scan(&link_title)
+	return link_title, err
+}
+
+const changeLinkURL = `-- name: ChangeLinkURL :one
+UPDATE link
+SET link_url = $2,
+    updated_at = CURRENT_TIMESTAMP
+WHERE link_id = $1 AND account_id = $3
+RETURNING link_url
+`
+
+type ChangeLinkURLParams struct {
+	LinkID    string `json:"link_id"`
+	LinkUrl   string `json:"link_url"`
+	AccountID int64  `json:"account_id"`
+}
+
+func (q *Queries) ChangeLinkURL(ctx context.Context, arg ChangeLinkURLParams) (string, error) {
+	row := q.db.QueryRow(ctx, changeLinkURL, arg.LinkID, arg.LinkUrl, arg.AccountID)
+	var link_url string
+	err := row.Scan(&link_url)
+	return link_url, err
+}
+
 const deleteLinkForever = `-- name: DeleteLinkForever :one
 DELETE FROM link WHERE link_id = $1 RETURNING link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col
 `
@@ -81,6 +158,44 @@ func (q *Queries) DeleteLinkForever(ctx context.Context, linkID string) (Link, e
 		&i.TextsearchableIndexCol,
 	)
 	return i, err
+}
+
+const getAllLinks = `-- name: GetAllLinks :many
+SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col FROM link WHERE account_id = $1  AND deleted_at IS NULL ORDER BY added_at DESC
+`
+
+func (q *Queries) GetAllLinks(ctx context.Context, accountID int64) ([]Link, error) {
+	rows, err := q.db.Query(ctx, getAllLinks, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Link
+	for rows.Next() {
+		var i Link
+		if err := rows.Scan(
+			&i.LinkID,
+			&i.LinkTitle,
+			&i.LinkThumbnail,
+			&i.LinkFavicon,
+			&i.LinkHostname,
+			&i.LinkUrl,
+			&i.LinkNotes,
+			&i.AccountID,
+			&i.FolderID,
+			&i.AddedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.TextsearchableIndexCol,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getFolderLinks = `-- name: GetFolderLinks :many
@@ -123,12 +238,17 @@ func (q *Queries) GetFolderLinks(ctx context.Context, folderID pgtype.Text) ([]L
 
 const getLink = `-- name: GetLink :one
 SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col FROM link
-WHERE link_id = $1
+WHERE link_id = $1 AND account_id = $2
 LIMIT 1
 `
 
-func (q *Queries) GetLink(ctx context.Context, linkID string) (Link, error) {
-	row := q.db.QueryRow(ctx, getLink, linkID)
+type GetLinkParams struct {
+	LinkID    string `json:"link_id"`
+	AccountID int64  `json:"account_id"`
+}
+
+func (q *Queries) GetLink(ctx context.Context, arg GetLinkParams) (Link, error) {
+	row := q.db.QueryRow(ctx, getLink, arg.LinkID, arg.AccountID)
 	var i Link
 	err := row.Scan(
 		&i.LinkID,
@@ -230,44 +350,6 @@ SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_ur
 
 func (q *Queries) GetRootLinks(ctx context.Context, accountID int64) ([]Link, error) {
 	rows, err := q.db.Query(ctx, getRootLinks, accountID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Link
-	for rows.Next() {
-		var i Link
-		if err := rows.Scan(
-			&i.LinkID,
-			&i.LinkTitle,
-			&i.LinkThumbnail,
-			&i.LinkFavicon,
-			&i.LinkHostname,
-			&i.LinkUrl,
-			&i.LinkNotes,
-			&i.AccountID,
-			&i.FolderID,
-			&i.AddedAt,
-			&i.UpdatedAt,
-			&i.DeletedAt,
-			&i.TextsearchableIndexCol,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getAllLinks = `-- name: getAllLinks :many
-SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col FROM link WHERE account_id = $1 AND deleted_at IS NULL ORDER BY added_at DESC
-`
-
-func (q *Queries) GetAllLinks(ctx context.Context, accountID int64) ([]Link, error) {
-	rows, err := q.db.Query(ctx, getAllLinks, accountID)
 	if err != nil {
 		return nil, err
 	}
@@ -526,15 +608,3 @@ func (q *Queries) SearchLinkz(ctx context.Context, arg SearchLinkzParams) ([]Lin
 	}
 	return items, nil
 }
-
-// const addNote = `-- name: AddNote :exec
-// UPDATE link
-// SET link_notes = $2,
-//     updated_at = CURRENT_TIMESTAMP
-// WHERE link_id = $1 AND account_id = $3;
-// `
-//
-// func (q *Queries) AddNote(ctx context.Context, link_id text, accountID , l) error {
-// 	_, err := q.db.Exec(ctx, deleteInvite, inviteToken)
-// 	return err
-// }

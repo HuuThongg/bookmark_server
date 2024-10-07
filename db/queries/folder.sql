@@ -7,7 +7,7 @@ RETURNING *;
 SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col
 FROM folder
 WHERE account_id = $1 AND folder_deleted_at IS NULL
-ORDER BY folder_created_at DESC
+ORDER BY folder_created_at DESC;
 
 -- name: GetRootNodes :many
 SELECT * FROM folder
