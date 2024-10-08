@@ -856,3 +856,19 @@ func (h *API) ChangeLinkURL(w http.ResponseWriter, r *http.Request) {
 
 	util.JsonResponse(w, newURL)
 }
+
+func (h *API) GetDeletedLinks(w http.ResponseWriter, r *http.Request) {
+
+	payload := r.Context().Value("payload").(*auth.PayLoad)
+
+	q := sqlc.New(h.db)
+
+	links, err := q.GetAllDeletedLinks(r.Context(), payload.AccountID)
+	if err != nil {
+		h.logger.Error().Err(err).Msg("cannot get all deleted links")
+		e.ErrorInternalServer(w, err)
+		return
+	}
+
+	util.JsonResponse(w, links)
+}

@@ -74,3 +74,7 @@ SET link_url = $2,
     updated_at = CURRENT_TIMESTAMP
 WHERE link_id = $1 AND account_id = $3
 RETURNING link_url;
+
+-- name: GetAllDeletedLinks :many
+SELECT * FROM link 
+WHERE account_id = $1 AND deleted_at IS NOT NULL;

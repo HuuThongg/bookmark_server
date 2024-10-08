@@ -160,6 +160,45 @@ func (q *Queries) DeleteLinkForever(ctx context.Context, linkID string) (Link, e
 	return i, err
 }
 
+const getAllDeletedLinks = `-- name: GetAllDeletedLinks :many
+SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col FROM link 
+WHERE account_id = $1 AND deleted_at IS NOT NULL
+`
+
+func (q *Queries) GetAllDeletedLinks(ctx context.Context, accountID int64) ([]Link, error) {
+	rows, err := q.db.Query(ctx, getAllDeletedLinks, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Link
+	for rows.Next() {
+		var i Link
+		if err := rows.Scan(
+			&i.LinkID,
+			&i.LinkTitle,
+			&i.LinkThumbnail,
+			&i.LinkFavicon,
+			&i.LinkHostname,
+			&i.LinkUrl,
+			&i.LinkNotes,
+			&i.AccountID,
+			&i.FolderID,
+			&i.AddedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.TextsearchableIndexCol,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAllLinks = `-- name: GetAllLinks :many
 SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col FROM link WHERE account_id = $1  AND deleted_at IS NULL ORDER BY added_at DESC
 `

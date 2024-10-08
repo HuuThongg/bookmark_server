@@ -107,6 +107,7 @@ func Router(l *zerolog.Logger, v *validator.Validate, db *pgxpool.Pool, config *
 			r.Patch("/changeTitle", a.ChangeLinkTitle)
 			r.Patch("/changeLinkURL", a.ChangeLinkURL)
 			r.Get("/{linkID}", a.GetSingleLink)
+			r.Get("/getAllDeletedLinks", a.GetDeletedLinks)
 		})
 	})
 	r.Get("/", a.Hello)
