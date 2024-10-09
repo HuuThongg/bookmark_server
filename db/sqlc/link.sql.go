@@ -307,6 +307,53 @@ func (q *Queries) GetLink(ctx context.Context, arg GetLinkParams) (Link, error) 
 	return i, err
 }
 
+const getLinksByTagName = `-- name: GetLinksByTagName :many
+SELECT l.link_id, l.link_title, l.link_thumbnail, l.link_favicon, l.link_hostname, l.link_url, l.link_notes, l.account_id, l.folder_id, l.added_at, l.updated_at, l.deleted_at, l.textsearchable_index_col
+FROM link l
+JOIN link_tags lt ON l.link_id = lt.link_id
+JOIN tags t ON lt.tag_id = t.tag_id
+WHERE t.tag_name = $1 AND l.deleted_at IS NULL AND l.account_id = $2
+`
+
+type GetLinksByTagNameParams struct {
+	TagName   string `json:"tag_name"`
+	AccountID int64  `json:"account_id"`
+}
+
+func (q *Queries) GetLinksByTagName(ctx context.Context, arg GetLinksByTagNameParams) ([]Link, error) {
+	rows, err := q.db.Query(ctx, getLinksByTagName, arg.TagName, arg.AccountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Link
+	for rows.Next() {
+		var i Link
+		if err := rows.Scan(
+			&i.LinkID,
+			&i.LinkTitle,
+			&i.LinkThumbnail,
+			&i.LinkFavicon,
+			&i.LinkHostname,
+			&i.LinkUrl,
+			&i.LinkNotes,
+			&i.AccountID,
+			&i.FolderID,
+			&i.AddedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.TextsearchableIndexCol,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getLinksByUserID = `-- name: GetLinksByUserID :many
 SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col FROM link WHERE account_id = $1
 `

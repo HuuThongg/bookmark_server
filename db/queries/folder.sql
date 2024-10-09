@@ -4,7 +4,7 @@ VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
 -- name: GetFoldersByAccountId :many
-SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col
+SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col, folder_order
 FROM folder
 WHERE account_id = $1 AND folder_deleted_at IS NULL
 ORDER BY folder_created_at DESC;
@@ -106,3 +106,16 @@ SELECT *
 FROM folder
 WHERE folder_name ILIKE $1 AND account_id = $2 AND folder_deleted_at IS NULL
 ORDER BY folder_created_at DESC;
+
+-- name: UpdateFolderOrder :exec
+UPDATE folder
+SET folder_order = $1
+WHERE folder_id = $2 AND account_id = $3;
+
+
+-- name: GetTreeFolders :many
+SELECT folder_id, folder_name, subfolder_of, folder_order
+FROM folder
+WHERE account_id = $1
+ORDER BY folder_order;  
+

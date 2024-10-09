@@ -14,7 +14,7 @@ import (
 const createFolder = `-- name: CreateFolder :one
 INSERT INTO folder (folder_id, folder_name, subfolder_of, account_id, path, label)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col
+RETURNING folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col, folder_order
 `
 
 type CreateFolderParams struct {
@@ -48,12 +48,13 @@ func (q *Queries) CreateFolder(ctx context.Context, arg CreateFolderParams) (Fol
 		&i.SubfolderOf,
 		&i.FolderDeletedAt,
 		&i.TextsearchableIndexCol,
+		&i.FolderOrder,
 	)
 	return i, err
 }
 
 const deleteFolderForever = `-- name: DeleteFolderForever :many
-DELETE FROM folder where path <@ (SELECT path FROM folder where folder.folder_id = $1) RETURNING folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col
+DELETE FROM folder where path <@ (SELECT path FROM folder where folder.folder_id = $1) RETURNING folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col, folder_order
 `
 
 func (q *Queries) DeleteFolderForever(ctx context.Context, folderID string) ([]Folder, error) {
@@ -77,6 +78,7 @@ func (q *Queries) DeleteFolderForever(ctx context.Context, folderID string) ([]F
 			&i.SubfolderOf,
 			&i.FolderDeletedAt,
 			&i.TextsearchableIndexCol,
+			&i.FolderOrder,
 		); err != nil {
 			return nil, err
 		}
@@ -89,7 +91,7 @@ func (q *Queries) DeleteFolderForever(ctx context.Context, folderID string) ([]F
 }
 
 const getFolder = `-- name: GetFolder :one
-SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col FROM folder
+SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col, folder_order FROM folder
 WHERE folder_id = $1
 LIMIT 1
 `
@@ -109,12 +111,13 @@ func (q *Queries) GetFolder(ctx context.Context, folderID string) (Folder, error
 		&i.SubfolderOf,
 		&i.FolderDeletedAt,
 		&i.TextsearchableIndexCol,
+		&i.FolderOrder,
 	)
 	return i, err
 }
 
 const getFolderAncestors = `-- name: GetFolderAncestors :many
-SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col FROM folder
+SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col, folder_order FROM folder
 WHERE folder.path @> (
   SELECT path FROM folder as f
   WHERE f.label = $1
@@ -143,6 +146,7 @@ func (q *Queries) GetFolderAncestors(ctx context.Context, label string) ([]Folde
 			&i.SubfolderOf,
 			&i.FolderDeletedAt,
 			&i.TextsearchableIndexCol,
+			&i.FolderOrder,
 		); err != nil {
 			return nil, err
 		}
@@ -155,7 +159,7 @@ func (q *Queries) GetFolderAncestors(ctx context.Context, label string) ([]Folde
 }
 
 const getFolderByFolderAndAccountIds = `-- name: GetFolderByFolderAndAccountIds :one
-SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col FROM folder
+SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col, folder_order FROM folder
 WHERE folder_id = $1 AND account_id = $2
 LIMIT 1
 `
@@ -180,12 +184,13 @@ func (q *Queries) GetFolderByFolderAndAccountIds(ctx context.Context, arg GetFol
 		&i.SubfolderOf,
 		&i.FolderDeletedAt,
 		&i.TextsearchableIndexCol,
+		&i.FolderOrder,
 	)
 	return i, err
 }
 
 const getFolderNodes = `-- name: GetFolderNodes :many
-SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col FROM folder
+SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col, folder_order FROM folder
 WHERE subfolder_of = $1 AND folder_deleted_at IS NULL
 ORDER BY folder_created_at DESC
 `
@@ -211,6 +216,7 @@ func (q *Queries) GetFolderNodes(ctx context.Context, subfolderOf pgtype.Text) (
 			&i.SubfolderOf,
 			&i.FolderDeletedAt,
 			&i.TextsearchableIndexCol,
+			&i.FolderOrder,
 		); err != nil {
 			return nil, err
 		}
@@ -223,7 +229,7 @@ func (q *Queries) GetFolderNodes(ctx context.Context, subfolderOf pgtype.Text) (
 }
 
 const getFoldersByAccountId = `-- name: GetFoldersByAccountId :many
-SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col
+SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col, folder_order
 FROM folder
 WHERE account_id = $1 AND folder_deleted_at IS NULL
 ORDER BY folder_created_at DESC
@@ -250,6 +256,7 @@ func (q *Queries) GetFoldersByAccountId(ctx context.Context, accountID int64) ([
 			&i.SubfolderOf,
 			&i.FolderDeletedAt,
 			&i.TextsearchableIndexCol,
+			&i.FolderOrder,
 		); err != nil {
 			return nil, err
 		}
@@ -262,7 +269,7 @@ func (q *Queries) GetFoldersByAccountId(ctx context.Context, accountID int64) ([
 }
 
 const getFoldersMovedToTrash = `-- name: GetFoldersMovedToTrash :many
-SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col FROM folder WHERE folder_deleted_at IS NOT NULL AND account_id = $1 ORDER BY folder_deleted_at DESC
+SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col, folder_order FROM folder WHERE folder_deleted_at IS NOT NULL AND account_id = $1 ORDER BY folder_deleted_at DESC
 `
 
 func (q *Queries) GetFoldersMovedToTrash(ctx context.Context, accountID int64) ([]Folder, error) {
@@ -286,6 +293,7 @@ func (q *Queries) GetFoldersMovedToTrash(ctx context.Context, accountID int64) (
 			&i.SubfolderOf,
 			&i.FolderDeletedAt,
 			&i.TextsearchableIndexCol,
+			&i.FolderOrder,
 		); err != nil {
 			return nil, err
 		}
@@ -298,7 +306,7 @@ func (q *Queries) GetFoldersMovedToTrash(ctx context.Context, accountID int64) (
 }
 
 const getRootFolders = `-- name: GetRootFolders :many
-SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col FROM folder WHERE NLEVEL(path) = 1 AND account_id = $1 AND folder_deleted_at IS NULL ORDER BY folder_created_at DESC
+SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col, folder_order FROM folder WHERE NLEVEL(path) = 1 AND account_id = $1 AND folder_deleted_at IS NULL ORDER BY folder_created_at DESC
 `
 
 func (q *Queries) GetRootFolders(ctx context.Context, accountID int64) ([]Folder, error) {
@@ -322,6 +330,7 @@ func (q *Queries) GetRootFolders(ctx context.Context, accountID int64) ([]Folder
 			&i.SubfolderOf,
 			&i.FolderDeletedAt,
 			&i.TextsearchableIndexCol,
+			&i.FolderOrder,
 		); err != nil {
 			return nil, err
 		}
@@ -334,7 +343,7 @@ func (q *Queries) GetRootFolders(ctx context.Context, accountID int64) ([]Folder
 }
 
 const getRootNodes = `-- name: GetRootNodes :many
-SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col FROM folder
+SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col, folder_order FROM folder
 WHERE account_id = $1 AND subfolder_of IS NULL AND folder_deleted_at IS NULL
 ORDER BY folder_created_at DESC
 `
@@ -360,6 +369,46 @@ func (q *Queries) GetRootNodes(ctx context.Context, accountID int64) ([]Folder, 
 			&i.SubfolderOf,
 			&i.FolderDeletedAt,
 			&i.TextsearchableIndexCol,
+			&i.FolderOrder,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTreeFolders = `-- name: GetTreeFolders :many
+SELECT folder_id, folder_name, subfolder_of, folder_order
+FROM folder
+WHERE account_id = $1
+ORDER BY folder_order
+`
+
+type GetTreeFoldersRow struct {
+	FolderID    string      `json:"folder_id"`
+	FolderName  string      `json:"folder_name"`
+	SubfolderOf pgtype.Text `json:"subfolder_of"`
+	FolderOrder int32       `json:"folder_order"`
+}
+
+func (q *Queries) GetTreeFolders(ctx context.Context, accountID int64) ([]GetTreeFoldersRow, error) {
+	rows, err := q.db.Query(ctx, getTreeFolders, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTreeFoldersRow
+	for rows.Next() {
+		var i GetTreeFoldersRow
+		if err := rows.Scan(
+			&i.FolderID,
+			&i.FolderName,
+			&i.SubfolderOf,
+			&i.FolderOrder,
 		); err != nil {
 			return nil, err
 		}
@@ -372,7 +421,7 @@ func (q *Queries) GetRootNodes(ctx context.Context, accountID int64) ([]Folder, 
 }
 
 const moveFolder = `-- name: MoveFolder :many
-UPDATE folder SET path = (SELECT path FROM folder WHERE folder.label = $1) || SUBPATH(path, NLEVEL((SELECT path FROM folder WHERE folder.label = $2))-1) WHERE path <@ (SELECT path FROM folder WHERE folder.label = $3) RETURNING folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col
+UPDATE folder SET path = (SELECT path FROM folder WHERE folder.label = $1) || SUBPATH(path, NLEVEL((SELECT path FROM folder WHERE folder.label = $2))-1) WHERE path <@ (SELECT path FROM folder WHERE folder.label = $3) RETURNING folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col, folder_order
 `
 
 type MoveFolderParams struct {
@@ -402,6 +451,7 @@ func (q *Queries) MoveFolder(ctx context.Context, arg MoveFolderParams) ([]Folde
 			&i.SubfolderOf,
 			&i.FolderDeletedAt,
 			&i.TextsearchableIndexCol,
+			&i.FolderOrder,
 		); err != nil {
 			return nil, err
 		}
@@ -417,7 +467,7 @@ const moveFolderToTrash = `-- name: MoveFolderToTrash :one
 UPDATE folder
 SET folder_deleted_at = CURRENT_TIMESTAMP
 WHERE folder_id = $1
-RETURNING folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col
+RETURNING folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col, folder_order
 `
 
 func (q *Queries) MoveFolderToTrash(ctx context.Context, folderID string) (Folder, error) {
@@ -435,6 +485,7 @@ func (q *Queries) MoveFolderToTrash(ctx context.Context, folderID string) (Folde
 		&i.SubfolderOf,
 		&i.FolderDeletedAt,
 		&i.TextsearchableIndexCol,
+		&i.FolderOrder,
 	)
 	return i, err
 }
@@ -442,7 +493,7 @@ func (q *Queries) MoveFolderToTrash(ctx context.Context, folderID string) (Folde
 const moveFoldersToRoot = `-- name: MoveFoldersToRoot :many
 UPDATE folder SET path = SUBPATH(path, NLEVEL((SELECT path FROM folder WHERE folder.label = $1))-1) WHERE path <@ (
 SELECT path FROM folder WHERE folder.label = $2
-) RETURNING folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col
+) RETURNING folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col, folder_order
 `
 
 type MoveFoldersToRootParams struct {
@@ -471,6 +522,7 @@ func (q *Queries) MoveFoldersToRoot(ctx context.Context, arg MoveFoldersToRootPa
 			&i.SubfolderOf,
 			&i.FolderDeletedAt,
 			&i.TextsearchableIndexCol,
+			&i.FolderOrder,
 		); err != nil {
 			return nil, err
 		}
@@ -486,7 +538,7 @@ const renameFolder = `-- name: RenameFolder :one
 UPDATE folder
 SET folder_name = $1
 WHERE folder_id = $2
-RETURNING folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col
+RETURNING folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col, folder_order
 `
 
 type RenameFolderParams struct {
@@ -509,12 +561,13 @@ func (q *Queries) RenameFolder(ctx context.Context, arg RenameFolderParams) (Fol
 		&i.SubfolderOf,
 		&i.FolderDeletedAt,
 		&i.TextsearchableIndexCol,
+		&i.FolderOrder,
 	)
 	return i, err
 }
 
 const restoreFolderFromTrash = `-- name: RestoreFolderFromTrash :one
-UPDATE folder SET folder_deleted_at = NULL WHERE folder_id = $1 RETURNING folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col
+UPDATE folder SET folder_deleted_at = NULL WHERE folder_id = $1 RETURNING folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col, folder_order
 `
 
 func (q *Queries) RestoreFolderFromTrash(ctx context.Context, folderID string) (Folder, error) {
@@ -532,12 +585,13 @@ func (q *Queries) RestoreFolderFromTrash(ctx context.Context, folderID string) (
 		&i.SubfolderOf,
 		&i.FolderDeletedAt,
 		&i.TextsearchableIndexCol,
+		&i.FolderOrder,
 	)
 	return i, err
 }
 
 const searchFolders = `-- name: SearchFolders :many
-SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col
+SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col, folder_order
 FROM folder
 WHERE textsearchable_index_col @@ plainto_tsquery($1) AND account_id = $2 AND folder_deleted_at IS NULL
 ORDER BY folder_created_at DESC
@@ -569,6 +623,7 @@ func (q *Queries) SearchFolders(ctx context.Context, arg SearchFoldersParams) ([
 			&i.SubfolderOf,
 			&i.FolderDeletedAt,
 			&i.TextsearchableIndexCol,
+			&i.FolderOrder,
 		); err != nil {
 			return nil, err
 		}
@@ -581,7 +636,7 @@ func (q *Queries) SearchFolders(ctx context.Context, arg SearchFoldersParams) ([
 }
 
 const searchFolderz = `-- name: SearchFolderz :many
-SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col
+SELECT folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col, folder_order
 FROM folder
 WHERE folder_name ILIKE $1 AND account_id = $2 AND folder_deleted_at IS NULL
 ORDER BY folder_created_at DESC
@@ -613,6 +668,7 @@ func (q *Queries) SearchFolderz(ctx context.Context, arg SearchFolderzParams) ([
 			&i.SubfolderOf,
 			&i.FolderDeletedAt,
 			&i.TextsearchableIndexCol,
+			&i.FolderOrder,
 		); err != nil {
 			return nil, err
 		}
@@ -628,7 +684,7 @@ const starFolder = `-- name: StarFolder :one
 UPDATE folder
 SET starred = 'true'
 WHERE folder_id = $1
-RETURNING folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col
+RETURNING folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col, folder_order
 `
 
 func (q *Queries) StarFolder(ctx context.Context, folderID string) (Folder, error) {
@@ -646,12 +702,13 @@ func (q *Queries) StarFolder(ctx context.Context, folderID string) (Folder, erro
 		&i.SubfolderOf,
 		&i.FolderDeletedAt,
 		&i.TextsearchableIndexCol,
+		&i.FolderOrder,
 	)
 	return i, err
 }
 
 const toggleFolderStarred = `-- name: ToggleFolderStarred :one
-UPDATE folder SET starred = NOT starred WHERE folder_id = $1 RETURNING folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col
+UPDATE folder SET starred = NOT starred WHERE folder_id = $1 RETURNING folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col, folder_order
 `
 
 func (q *Queries) ToggleFolderStarred(ctx context.Context, folderID string) (Folder, error) {
@@ -669,6 +726,7 @@ func (q *Queries) ToggleFolderStarred(ctx context.Context, folderID string) (Fol
 		&i.SubfolderOf,
 		&i.FolderDeletedAt,
 		&i.TextsearchableIndexCol,
+		&i.FolderOrder,
 	)
 	return i, err
 }
@@ -677,7 +735,7 @@ const unstarFolder = `-- name: UnstarFolder :one
 UPDATE folder
 SET starred = 'false'
 WHERE folder_id = $1
-RETURNING folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col
+RETURNING folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col, folder_order
 `
 
 func (q *Queries) UnstarFolder(ctx context.Context, folderID string) (Folder, error) {
@@ -695,15 +753,33 @@ func (q *Queries) UnstarFolder(ctx context.Context, folderID string) (Folder, er
 		&i.SubfolderOf,
 		&i.FolderDeletedAt,
 		&i.TextsearchableIndexCol,
+		&i.FolderOrder,
 	)
 	return i, err
+}
+
+const updateFolderOrder = `-- name: UpdateFolderOrder :exec
+UPDATE folder
+SET folder_order = $1
+WHERE folder_id = $2 AND account_id = $3
+`
+
+type UpdateFolderOrderParams struct {
+	FolderOrder int32  `json:"folder_order"`
+	FolderID    string `json:"folder_id"`
+	AccountID   int64  `json:"account_id"`
+}
+
+func (q *Queries) UpdateFolderOrder(ctx context.Context, arg UpdateFolderOrderParams) error {
+	_, err := q.db.Exec(ctx, updateFolderOrder, arg.FolderOrder, arg.FolderID, arg.AccountID)
+	return err
 }
 
 const updateFolderSubfolderOf = `-- name: UpdateFolderSubfolderOf :one
 UPDATE folder
 SET subfolder_of = $1
 WHERE folder_id = $2
-RETURNING folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col
+RETURNING folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col, folder_order
 `
 
 type UpdateFolderSubfolderOfParams struct {
@@ -726,6 +802,7 @@ func (q *Queries) UpdateFolderSubfolderOf(ctx context.Context, arg UpdateFolderS
 		&i.SubfolderOf,
 		&i.FolderDeletedAt,
 		&i.TextsearchableIndexCol,
+		&i.FolderOrder,
 	)
 	return i, err
 }

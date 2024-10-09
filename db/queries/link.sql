@@ -78,3 +78,10 @@ RETURNING link_url;
 -- name: GetAllDeletedLinks :many
 SELECT * FROM link 
 WHERE account_id = $1 AND deleted_at IS NOT NULL;
+
+-- name: GetLinksByTagName :many
+SELECT l.*
+FROM link l
+JOIN link_tags lt ON l.link_id = lt.link_id
+JOIN tags t ON lt.tag_id = t.tag_id
+WHERE t.tag_name = $1 AND l.deleted_at IS NULL AND l.account_id = $2;

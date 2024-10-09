@@ -40,6 +40,7 @@ type returnFolder struct {
 	FolderUpdatedAt string             `json:"folder_updated_at"`
 	SubfolderOf     pgtype.Text        `json:"subfolder_of"`
 	FolderDeletedAt pgtype.Timestamptz `json:"folder_deleted_at"`
+	FolderSort      int32              `json:"folder_sort"`
 }
 
 func newReturnedFolder(f sqlc.Folder) returnFolder {
@@ -54,6 +55,7 @@ func newReturnedFolder(f sqlc.Folder) returnFolder {
 		FolderUpdatedAt: strings.Join(strings.Split(strings.Split(f.FolderCreatedAt.Time.Local().Format(time.RFC3339), "T")[0], "-"), "/"),
 		SubfolderOf:     f.SubfolderOf,
 		FolderDeletedAt: f.FolderDeletedAt,
+		FolderSort:      f.FolderOrder,
 	}
 }
 

@@ -19,14 +19,14 @@ func Router(l *zerolog.Logger, v *validator.Validate, db *pgxpool.Pool, config *
 	a := api.NewAPI(l, v, db, config)
 
 	r.Use(cors.Handler(cors.Options{
-		// AllowedOrigins:   []string{"https://foo.com"}, // Use this to allow specific origin hosts
-		AllowedOrigins:   []string{"https://*", "http://*"},
+		AllowedOrigins:   []string{"https://bookmark-ui.vercel.app", "http://localhost:5173"}, // Allow both production and local dev origins
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: true,
-		MaxAge:           300, // Maximum value not ignored by any of major browsers
+		AllowCredentials: true, // Allow credentials like cookies, tokens
+		MaxAge:           300,  // Cache preflight response for 5 minutes
 	}))
+
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RealIP)
@@ -91,6 +91,8 @@ func Router(l *zerolog.Logger, v *validator.Validate, db *pgxpool.Pool, config *
 			r.Get("/getFolderChildren/{folderID}/{accountID}", a.GetFolderChildren)
 			r.Get("/getFolderAncestors/{folderID}", a.GetFolderAncestors)
 			r.Get("/searchFolders/{query}", a.SearchFolders)
+			r.Get("/getTreeFolders", a.GetSortedTreeFolders)
+			r.Patch("/updateOrder", a.UpdateFolderSort)
 		})
 		r.Route("/link", func(r chi.Router) {
 			r.Post("/add", a.AddLink)
@@ -109,6 +111,13 @@ func Router(l *zerolog.Logger, v *validator.Validate, db *pgxpool.Pool, config *
 			r.Get("/{linkID}", a.GetSingleLink)
 			r.Get("/getAllDeletedLinks", a.GetDeletedLinks)
 		})
+		r.Route("/tag", func(r chi.Router) {
+			r.Post("/", a.AddTag)
+			r.Delete("/", a.DeleteTag)
+			r.Get("/", a.GetTagByLinkId)
+			r.Get("/stats", a.GetTagStats)
+		})
+
 	})
 	r.Get("/", a.Hello)
 	return r

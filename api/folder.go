@@ -22,6 +22,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -1073,4 +1074,70 @@ func (h *API) DeleteFoldersForever(w http.ResponseWriter, r *http.Request) {
 	}
 
 	util.JsonResponse(w, folders)
+}
+
+func (h *API) GetSortedTreeFolders(w http.ResponseWriter, r *http.Request) {
+
+	payload := r.Context().Value("payload").(*auth.PayLoad)
+
+	q := sqlc.New(h.db)
+
+	folders, err := q.GetTreeFolders(r.Context(), payload.AccountID)
+	if err != nil {
+		h.logger.Error().Err(err).Msg("cannot get GetTreeFolders")
+		e.ErrorInternalServer(w, err)
+		return
+	}
+
+	util.JsonResponse(w, folders)
+}
+
+type Folder struct {
+	FolderID    string `json:"folder_id" validate:"required"`
+	FolderOrder int8   `json:"folder_order" validate:"required,min=0"`
+	SubfolderOf string `json:"subfolder_of"`
+}
+
+type UpdateFolderSortRequest struct {
+	Folders []Folder `json:"folders" validate:"required,dive"`
+}
+
+func (h *API) UpdateFolderSort(w http.ResponseWriter, r *http.Request) {
+	body := json.NewDecoder(r.Body)
+	body.DisallowUnknownFields()
+
+	var req UpdateFolderSortRequest
+
+	// Decode the incoming request body
+	if err := body.Decode(&req); err != nil {
+		fmt.Println("can not decod")
+		e.ErrorDecodingRequest(w, err)
+		return
+	}
+
+	if err := h.validator.Struct(req); err != nil {
+		for _, err := range err.(validator.ValidationErrors) {
+			h.logger.Error().Err(err).Msg("Validation error")
+		}
+		util.JsonResponse(w, "Validation failed", http.StatusBadRequest)
+		return
+	}
+
+	q := sqlc.New(h.db)
+	payload := r.Context().Value("payload").(*auth.PayLoad)
+	for _, folder := range req.Folders {
+		params := sqlc.UpdateFolderOrderParams{
+			FolderOrder: int32(folder.FolderOrder),
+			AccountID:   payload.AccountID,
+			FolderID:    folder.FolderID,
+		}
+
+		if err := q.UpdateFolderOrder(r.Context(), params); err != nil {
+			h.logger.Error().Err(err).Msg("cannot update folder order")
+			e.ErrorInternalServer(w, err)
+			return
+		}
+	}
+
+	util.JsonResponse(w, map[string]string{"result": "true"})
 }

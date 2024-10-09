@@ -149,6 +149,7 @@ type Folder struct {
 	SubfolderOf            pgtype.Text        `json:"subfolder_of"`
 	FolderDeletedAt        pgtype.Timestamptz `json:"folder_deleted_at"`
 	TextsearchableIndexCol string             `json:"textsearchable_index_col"`
+	FolderOrder            int32              `json:"folder_order"`
 }
 
 type Link struct {
@@ -165,6 +166,11 @@ type Link struct {
 	UpdatedAt              pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt              pgtype.Timestamptz `json:"deleted_at"`
 	TextsearchableIndexCol string             `json:"textsearchable_index_col"`
+}
+
+type LinkTag struct {
+	LinkID string `json:"link_id"`
+	TagID  int32  `json:"tag_id"`
 }
 
 type MemberInvite struct {
@@ -192,4 +198,10 @@ type PublicSharedCollection struct {
 	CollectionShareAt     pgtype.Timestamptz    `json:"collection_share_at"`
 	CollectionShareExpiry pgtype.Timestamptz    `json:"collection_share_expiry"`
 	CollectionAccessLevel CollectionAccessLevel `json:"collection_access_level"`
+}
+
+type Tag struct {
+	TagID     int32  `json:"tag_id"`
+	TagName   string `json:"tag_name"`
+	AccountID int64  `json:"account_id"`
 }
