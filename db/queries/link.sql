@@ -1,6 +1,6 @@
 -- name: AddLink :one
-INSERT INTO link (link_id, link_title, link_hostname, link_url, link_favicon, account_id, folder_id, link_thumbnail)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO link (link_id, link_title, link_hostname, link_url, link_favicon, account_id, folder_id, link_thumbnail ,description)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 RETURNING *;
 
 -- name: GetRootLinks :many

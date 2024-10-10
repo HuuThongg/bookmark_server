@@ -12,9 +12,9 @@ import (
 )
 
 const addLink = `-- name: AddLink :one
-INSERT INTO link (link_id, link_title, link_hostname, link_url, link_favicon, account_id, folder_id, link_thumbnail)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col
+INSERT INTO link (link_id, link_title, link_hostname, link_url, link_favicon, account_id, folder_id, link_thumbnail ,description)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+RETURNING link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col, description
 `
 
 type AddLinkParams struct {
@@ -26,6 +26,7 @@ type AddLinkParams struct {
 	AccountID     int64       `json:"account_id"`
 	FolderID      pgtype.Text `json:"folder_id"`
 	LinkThumbnail string      `json:"link_thumbnail"`
+	Description   pgtype.Text `json:"description"`
 }
 
 func (q *Queries) AddLink(ctx context.Context, arg AddLinkParams) (Link, error) {
@@ -38,6 +39,7 @@ func (q *Queries) AddLink(ctx context.Context, arg AddLinkParams) (Link, error) 
 		arg.AccountID,
 		arg.FolderID,
 		arg.LinkThumbnail,
+		arg.Description,
 	)
 	var i Link
 	err := row.Scan(
@@ -54,6 +56,7 @@ func (q *Queries) AddLink(ctx context.Context, arg AddLinkParams) (Link, error) 
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.TextsearchableIndexCol,
+		&i.Description,
 	)
 	return i, err
 }
@@ -63,7 +66,7 @@ UPDATE link
 SET link_notes = $2,
     updated_at = CURRENT_TIMESTAMP
 WHERE link_id = $1 AND account_id = $3
-RETURNING link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col
+RETURNING link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col, description
 `
 
 type AddNoteParams struct {
@@ -89,6 +92,7 @@ func (q *Queries) AddNote(ctx context.Context, arg AddNoteParams) (Link, error) 
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.TextsearchableIndexCol,
+		&i.Description,
 	)
 	return i, err
 }
@@ -136,7 +140,7 @@ func (q *Queries) ChangeLinkURL(ctx context.Context, arg ChangeLinkURLParams) (s
 }
 
 const deleteLinkForever = `-- name: DeleteLinkForever :one
-DELETE FROM link WHERE link_id = $1 RETURNING link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col
+DELETE FROM link WHERE link_id = $1 RETURNING link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col, description
 `
 
 func (q *Queries) DeleteLinkForever(ctx context.Context, linkID string) (Link, error) {
@@ -156,12 +160,13 @@ func (q *Queries) DeleteLinkForever(ctx context.Context, linkID string) (Link, e
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.TextsearchableIndexCol,
+		&i.Description,
 	)
 	return i, err
 }
 
 const getAllDeletedLinks = `-- name: GetAllDeletedLinks :many
-SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col FROM link 
+SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col, description FROM link 
 WHERE account_id = $1 AND deleted_at IS NOT NULL
 `
 
@@ -188,6 +193,7 @@ func (q *Queries) GetAllDeletedLinks(ctx context.Context, accountID int64) ([]Li
 			&i.UpdatedAt,
 			&i.DeletedAt,
 			&i.TextsearchableIndexCol,
+			&i.Description,
 		); err != nil {
 			return nil, err
 		}
@@ -200,7 +206,7 @@ func (q *Queries) GetAllDeletedLinks(ctx context.Context, accountID int64) ([]Li
 }
 
 const getAllLinks = `-- name: GetAllLinks :many
-SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col FROM link WHERE account_id = $1  AND deleted_at IS NULL ORDER BY added_at DESC
+SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col, description FROM link WHERE account_id = $1  AND deleted_at IS NULL ORDER BY added_at DESC
 `
 
 func (q *Queries) GetAllLinks(ctx context.Context, accountID int64) ([]Link, error) {
@@ -226,6 +232,7 @@ func (q *Queries) GetAllLinks(ctx context.Context, accountID int64) ([]Link, err
 			&i.UpdatedAt,
 			&i.DeletedAt,
 			&i.TextsearchableIndexCol,
+			&i.Description,
 		); err != nil {
 			return nil, err
 		}
@@ -238,7 +245,7 @@ func (q *Queries) GetAllLinks(ctx context.Context, accountID int64) ([]Link, err
 }
 
 const getFolderLinks = `-- name: GetFolderLinks :many
-SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col FROM link WHERE folder_id = $1 AND deleted_at IS NULL ORDER BY added_at DESC
+SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col, description FROM link WHERE folder_id = $1 AND deleted_at IS NULL ORDER BY added_at DESC
 `
 
 func (q *Queries) GetFolderLinks(ctx context.Context, folderID pgtype.Text) ([]Link, error) {
@@ -264,6 +271,7 @@ func (q *Queries) GetFolderLinks(ctx context.Context, folderID pgtype.Text) ([]L
 			&i.UpdatedAt,
 			&i.DeletedAt,
 			&i.TextsearchableIndexCol,
+			&i.Description,
 		); err != nil {
 			return nil, err
 		}
@@ -276,7 +284,7 @@ func (q *Queries) GetFolderLinks(ctx context.Context, folderID pgtype.Text) ([]L
 }
 
 const getLink = `-- name: GetLink :one
-SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col FROM link
+SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col, description FROM link
 WHERE link_id = $1 AND account_id = $2
 LIMIT 1
 `
@@ -303,12 +311,13 @@ func (q *Queries) GetLink(ctx context.Context, arg GetLinkParams) (Link, error) 
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.TextsearchableIndexCol,
+		&i.Description,
 	)
 	return i, err
 }
 
 const getLinksByTagName = `-- name: GetLinksByTagName :many
-SELECT l.link_id, l.link_title, l.link_thumbnail, l.link_favicon, l.link_hostname, l.link_url, l.link_notes, l.account_id, l.folder_id, l.added_at, l.updated_at, l.deleted_at, l.textsearchable_index_col
+SELECT l.link_id, l.link_title, l.link_thumbnail, l.link_favicon, l.link_hostname, l.link_url, l.link_notes, l.account_id, l.folder_id, l.added_at, l.updated_at, l.deleted_at, l.textsearchable_index_col, l.description
 FROM link l
 JOIN link_tags lt ON l.link_id = lt.link_id
 JOIN tags t ON lt.tag_id = t.tag_id
@@ -343,6 +352,7 @@ func (q *Queries) GetLinksByTagName(ctx context.Context, arg GetLinksByTagNamePa
 			&i.UpdatedAt,
 			&i.DeletedAt,
 			&i.TextsearchableIndexCol,
+			&i.Description,
 		); err != nil {
 			return nil, err
 		}
@@ -355,7 +365,7 @@ func (q *Queries) GetLinksByTagName(ctx context.Context, arg GetLinksByTagNamePa
 }
 
 const getLinksByUserID = `-- name: GetLinksByUserID :many
-SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col FROM link WHERE account_id = $1
+SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col, description FROM link WHERE account_id = $1
 `
 
 func (q *Queries) GetLinksByUserID(ctx context.Context, accountID int64) ([]Link, error) {
@@ -381,6 +391,7 @@ func (q *Queries) GetLinksByUserID(ctx context.Context, accountID int64) ([]Link
 			&i.UpdatedAt,
 			&i.DeletedAt,
 			&i.TextsearchableIndexCol,
+			&i.Description,
 		); err != nil {
 			return nil, err
 		}
@@ -393,7 +404,7 @@ func (q *Queries) GetLinksByUserID(ctx context.Context, accountID int64) ([]Link
 }
 
 const getLinksMovedToTrash = `-- name: GetLinksMovedToTrash :many
-SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col FROM link WHERE deleted_at IS NOT NULL AND account_id = $1 ORDER BY deleted_at DESC
+SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col, description FROM link WHERE deleted_at IS NOT NULL AND account_id = $1 ORDER BY deleted_at DESC
 `
 
 func (q *Queries) GetLinksMovedToTrash(ctx context.Context, accountID int64) ([]Link, error) {
@@ -419,6 +430,7 @@ func (q *Queries) GetLinksMovedToTrash(ctx context.Context, accountID int64) ([]
 			&i.UpdatedAt,
 			&i.DeletedAt,
 			&i.TextsearchableIndexCol,
+			&i.Description,
 		); err != nil {
 			return nil, err
 		}
@@ -431,7 +443,7 @@ func (q *Queries) GetLinksMovedToTrash(ctx context.Context, accountID int64) ([]
 }
 
 const getRootLinks = `-- name: GetRootLinks :many
-SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col FROM link WHERE account_id = $1 AND folder_id IS NULL AND deleted_at IS NULL ORDER BY added_at DESC
+SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col, description FROM link WHERE account_id = $1 AND folder_id IS NULL AND deleted_at IS NULL ORDER BY added_at DESC
 `
 
 func (q *Queries) GetRootLinks(ctx context.Context, accountID int64) ([]Link, error) {
@@ -457,6 +469,7 @@ func (q *Queries) GetRootLinks(ctx context.Context, accountID int64) ([]Link, er
 			&i.UpdatedAt,
 			&i.DeletedAt,
 			&i.TextsearchableIndexCol,
+			&i.Description,
 		); err != nil {
 			return nil, err
 		}
@@ -469,7 +482,7 @@ func (q *Queries) GetRootLinks(ctx context.Context, accountID int64) ([]Link, er
 }
 
 const moveLinkToFolder = `-- name: MoveLinkToFolder :one
-UPDATE link SET folder_id = $1 WHERE link_id = $2 RETURNING link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col
+UPDATE link SET folder_id = $1 WHERE link_id = $2 RETURNING link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col, description
 `
 
 type MoveLinkToFolderParams struct {
@@ -494,12 +507,13 @@ func (q *Queries) MoveLinkToFolder(ctx context.Context, arg MoveLinkToFolderPara
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.TextsearchableIndexCol,
+		&i.Description,
 	)
 	return i, err
 }
 
 const moveLinkToRoot = `-- name: MoveLinkToRoot :one
-UPDATE link SET folder_id = NULL WHERE link_id = $1 RETURNING link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col
+UPDATE link SET folder_id = NULL WHERE link_id = $1 RETURNING link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col, description
 `
 
 func (q *Queries) MoveLinkToRoot(ctx context.Context, linkID string) (Link, error) {
@@ -519,12 +533,13 @@ func (q *Queries) MoveLinkToRoot(ctx context.Context, linkID string) (Link, erro
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.TextsearchableIndexCol,
+		&i.Description,
 	)
 	return i, err
 }
 
 const moveLinkToTrash = `-- name: MoveLinkToTrash :one
-UPDATE link SET deleted_at = CURRENT_TIMESTAMP WHERE link_id = $1 RETURNING link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col
+UPDATE link SET deleted_at = CURRENT_TIMESTAMP WHERE link_id = $1 RETURNING link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col, description
 `
 
 func (q *Queries) MoveLinkToTrash(ctx context.Context, linkID string) (Link, error) {
@@ -544,12 +559,13 @@ func (q *Queries) MoveLinkToTrash(ctx context.Context, linkID string) (Link, err
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.TextsearchableIndexCol,
+		&i.Description,
 	)
 	return i, err
 }
 
 const renameLink = `-- name: RenameLink :one
-UPDATE link SET link_title = $1 WHERE link_id = $2 RETURNING link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col
+UPDATE link SET link_title = $1 WHERE link_id = $2 RETURNING link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col, description
 `
 
 type RenameLinkParams struct {
@@ -574,12 +590,13 @@ func (q *Queries) RenameLink(ctx context.Context, arg RenameLinkParams) (Link, e
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.TextsearchableIndexCol,
+		&i.Description,
 	)
 	return i, err
 }
 
 const restoreLinkFromTrash = `-- name: RestoreLinkFromTrash :one
-UPDATE link SET deleted_at = NULL WHERE link_id = $1 RETURNING link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col
+UPDATE link SET deleted_at = NULL WHERE link_id = $1 RETURNING link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col, description
 `
 
 func (q *Queries) RestoreLinkFromTrash(ctx context.Context, linkID string) (Link, error) {
@@ -599,12 +616,13 @@ func (q *Queries) RestoreLinkFromTrash(ctx context.Context, linkID string) (Link
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.TextsearchableIndexCol,
+		&i.Description,
 	)
 	return i, err
 }
 
 const searchLinks = `-- name: SearchLinks :many
-SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col
+SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col, description
 FROM link
 WHERE textsearchable_index_col @@ plainto_tsquery($1) AND account_id = $2 AND deleted_at IS NULL
 ORDER BY added_at DESC
@@ -638,6 +656,7 @@ func (q *Queries) SearchLinks(ctx context.Context, arg SearchLinksParams) ([]Lin
 			&i.UpdatedAt,
 			&i.DeletedAt,
 			&i.TextsearchableIndexCol,
+			&i.Description,
 		); err != nil {
 			return nil, err
 		}
@@ -650,7 +669,7 @@ func (q *Queries) SearchLinks(ctx context.Context, arg SearchLinksParams) ([]Lin
 }
 
 const searchLinkz = `-- name: SearchLinkz :many
-SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col
+SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col, description
 FROM link
 WHERE link_title ILIKE $1 AND account_id = $2 AND deleted_at IS NULL
 ORDER BY added_at DESC
@@ -684,6 +703,7 @@ func (q *Queries) SearchLinkz(ctx context.Context, arg SearchLinkzParams) ([]Lin
 			&i.UpdatedAt,
 			&i.DeletedAt,
 			&i.TextsearchableIndexCol,
+			&i.Description,
 		); err != nil {
 			return nil, err
 		}

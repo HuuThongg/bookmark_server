@@ -3,6 +3,7 @@ package vultr
 import (
 	"bookmark/util"
 	"bytes"
+	"errors"
 	"fmt"
 	"image"
 	"image/jpeg"
@@ -104,17 +105,17 @@ func UploadLinkThumbnail1(linkThumbnailChannel chan string, screenShotBytes []by
 	linkThumbnailChannel <- fmt.Sprintf("%s/link-thumbnails/%s", config.BlackBlazeHostName, *object.Key)
 }
 
-func UploadLinkThumbnail2(linkThumbnailChannel chan string, ogImage, host string) {
+func UploadLinkThumbnail2(linkThumbnailChannel chan string, ogImage, host string) error {
 
 	if ogImage == "" {
 		fmt.Println("ogImage is empty")
-		return
+		linkThumbnailChannel <- ""
+		return errors.New("ogImage is empty")
 	}
 	// Call the function to download the image
 	imageBuffer, imgType, err1 := DownloadImage(ogImage, host)
 	if err1 != nil {
-		fmt.Println("Error downloading the image:", err1)
-		return
+		return fmt.Errorf("error downloading the image: %w", err1)
 	}
 	config, err := util.LoadConfig(".")
 	if err != nil {
@@ -149,6 +150,7 @@ func UploadLinkThumbnail2(linkThumbnailChannel chan string, ogImage, host string
 
 	log.Printf("link thumbnail url: %s", fmt.Sprintf("%s/%s", config.BlackBlazeHostName, *object.Key))
 	linkThumbnailChannel <- fmt.Sprintf("%s/link-thumbnails/%s", config.BlackBlazeHostName, *object.Key)
+	return nil
 }
 
 func DownloadImage(url, host string) ([]byte, string, error) {
@@ -156,6 +158,7 @@ func DownloadImage(url, host string) ([]byte, string, error) {
 	client := &http.Client{}
 
 	// Create an HTTP GET request
+	fmt.Println("hosssssssst", host, url)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, "", err

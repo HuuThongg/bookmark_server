@@ -166,6 +166,7 @@ type Link struct {
 	UpdatedAt              pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt              pgtype.Timestamptz `json:"deleted_at"`
 	TextsearchableIndexCol string             `json:"textsearchable_index_col"`
+	Description            pgtype.Text        `json:"description"`
 }
 
 type LinkTag struct {
