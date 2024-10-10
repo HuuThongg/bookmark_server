@@ -3,6 +3,7 @@ package router
 import (
 	"bookmark/api"
 	"bookmark/util"
+	"net/http"
 
 	cm "bookmark/middleware"
 
@@ -96,6 +97,9 @@ func Router(l *zerolog.Logger, v *validator.Validate, db *pgxpool.Pool, config *
 		})
 		r.Route("/link", func(r chi.Router) {
 			r.Post("/add", a.AddLink)
+			r.Options("/add", func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			})
 			r.Patch("/rename", a.RenameLink)
 			r.Patch("/move", a.MoveLinks)
 			r.Patch("/moveLinksToTrash", a.MoveLinksToTrash)
