@@ -96,7 +96,7 @@ func Router(l *zerolog.Logger, v *validator.Validate, db *pgxpool.Pool, config *
 			r.Patch("/updateOrder", a.UpdateFolderSort)
 		})
 		r.Route("/link", func(r chi.Router) {
-			r.Post("/add", a.AddLink)
+			r.Post("/add", a.AddLinkV2)
 			r.Options("/add", func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
 			})
