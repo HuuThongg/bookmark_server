@@ -16,8 +16,8 @@ import (
 
 	e "bookmark/api/resource/common/err"
 
-	"github.com/go-ozzo/ozzo-validation/is"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/jackc/pgconn"
 )
 
