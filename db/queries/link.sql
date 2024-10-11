@@ -85,3 +85,10 @@ FROM link l
 JOIN link_tags lt ON l.link_id = lt.link_id
 JOIN tags t ON lt.tag_id = t.tag_id
 WHERE t.tag_name = $1 AND l.deleted_at IS NULL AND l.account_id = $2;
+
+-- name: UpdateLinkDesc :one
+UPDATE link
+SET description = $2,
+    updated_at = CURRENT_TIMESTAMP
+WHERE link_id = $1 AND account_id = $3
+RETURNING description;

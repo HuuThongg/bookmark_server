@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -45,10 +46,12 @@ func UploadLinkFavicon(linkFaviconChannel chan string) {
 	}
 	s3Client := s3.New(newSession)
 	object := s3.PutObjectInput{
-		Bucket: aws.String("/link-favicons"),
-		Key:    aws.String(uuid.NewString()),
-		Body:   <-imgFileChan,
-		// ACL:    aws.String("public-read"),
+		Bucket:       aws.String("/link-favicons"),
+		Key:          aws.String(uuid.NewString()),
+		Body:         <-imgFileChan,
+		ACL:          aws.String("public-read"),
+		CacheControl: aws.String("public, max-age=31536000"),
+		Expires:      aws.Time(time.Now().Add(365 * 24 * time.Hour)),
 	}
 
 	_, err = s3Client.PutObject(&object)

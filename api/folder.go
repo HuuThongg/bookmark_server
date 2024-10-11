@@ -27,77 +27,13 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-// CREATE FOLDER
-// type createRootFolderRequest struct {
-// 	FolderName string `json:"folder_name"`
-// 	FolderID   string `json:"parent_folder_id"`
-// }
-
-// func (s createRootFolderRequest) validate(reqValidationChan chan error) error {
-// 	returnVal := validation.ValidateStruct(&s,
-// 		validation.Field(&s.FolderName, validation.Required.When(s.FolderName == "").Error("Folder name is required"), validation.Match(regexp.MustCompile("^[^?[\\]{}|\\\\`./!@#$%^&*()_-]+$")).Error("Folder name must not have special characters"), validation.Length(1, 100).Error("Folder name must be at least 1 character long")),
-
-// 	)
-// 	reqValidationChan <- returnVal
-// 	return returnVal
-// }
-
 func (h *API) CreateFolder(w http.ResponseWriter, r *http.Request) {
 	// log.Printf("authorized payload: %v", r.Context().Value("authorizedPayload").(*auth.PayLoad))
 	requestBody := r.Context().Value("createFolderRequest").(*middleware.CreateFolderRequestBody).Body
 
 	authorizedPayload := r.Context().Value("createFolderRequest").(*middleware.CreateFolderRequestBody).PayLoad
 
-	// log.Println(rB)
-
-	// rBody := json.NewDecoder(r.Body)
-
-	// rBody.DisallowUnknownFields()
-
-	// var req createRootFolderRequest
-
-	// err := rBody.Decode(&req)
-	// if err != nil {
-	// 	if e, ok := err.(*json.SyntaxError); ok {
-	// 		log.Printf("syntax error at byte offset %d", e.Offset)
-	// 		util.Response(w, internalServerError, http.StatusInternalServerError)
-	// 		return
-	// 	} else {
-	// 		log.Printf("error decoding request body to struct: %v", err)
-	// 		util.Response(w, badRequest, http.StatusBadRequest)
-	// 		return
-	// 	}
-	// }
-
-	// reqValidationChan := make(chan error, 1)
-
-	// var wg sync.WaitGroup
-
-	// wg.Add(1)
-
-	// go func() {
-	// 	defer wg.Done()
-
-	// 	req.validate(reqValidationChan)
-	// }()
-
-	// requestValidationErr := <-reqValidationChan
-	// if requestValidationErr != nil {
-	// 	if e, ok := requestValidationErr.(validation.InternalError); ok {
-	// 		log.Println(e)
-	// 		util.Response(w, internalServerError, http.StatusInternalServerError)
-	// 		return
-	// 	} else {
-	// 		log.Println(requestValidationErr)
-	// 		util.Response(w, requestValidationErr.Error(), http.StatusInternalServerError)
-	// 		return
-	// 	}
-	// }
-
-	// payload := r.Context().Value("payload").(*auth.PayLoad)
-
 	queries := sqlc.New(h.db)
-	fmt.Println("folderID", requestBody.FolderID)
 	if requestBody.FolderID != "null" {
 		util.CreateChildFolder(queries, w, r, requestBody.FolderName, requestBody.FolderID, authorizedPayload.AccountID)
 		return

@@ -20,7 +20,7 @@ func Router(l *zerolog.Logger, v *validator.Validate, db *pgxpool.Pool, config *
 	a := api.NewAPI(l, v, db, config)
 
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"https://bookmark-ui.vercel.app", "http://localhost:5173"}, // Allow both production and local dev origins
+		AllowedOrigins:   []string{"https://bookmark-ui.vercel.app", "http://localhost:5173", "https://bookmarking.app", "https://ca94dd7c.bookmark-ui.pages.dev"}, // Allow both production and local dev origins
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
@@ -36,6 +36,8 @@ func Router(l *zerolog.Logger, v *validator.Validate, db *pgxpool.Pool, config *
 	r.Use(middleware.RedirectSlashes)
 
 	r.Route("/public", func(r chi.Router) {
+
+		r.Get("/proxy", a.ProxyHandler)
 		r.Post("/checkIfIsAuthenticated", a.CheckIfIsAuthenticated)
 		//
 		// r.Post("/continueWithGoogle", a.ContinueWithGoogle)
@@ -114,6 +116,7 @@ func Router(l *zerolog.Logger, v *validator.Validate, db *pgxpool.Pool, config *
 			r.Patch("/changeLinkURL", a.ChangeLinkURL)
 			r.Get("/{linkID}", a.GetSingleLink)
 			r.Get("/getAllDeletedLinks", a.GetDeletedLinks)
+			r.Patch("/changeLinkDesc", a.ChangeLinkDesc)
 		})
 		r.Route("/tag", func(r chi.Router) {
 			r.Post("/", a.AddTag)

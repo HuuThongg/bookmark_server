@@ -28,7 +28,7 @@ type PageData struct {
 }
 type URLV2 struct {
 	URL      string `json:"url" validate:"required"`
-	FolderId string `json:"folder_id" validate:"required"`
+	FolderId string `json:"folder_id"`
 }
 
 func (h *API) AddLinkV2(w http.ResponseWriter, r *http.Request) {
@@ -73,7 +73,12 @@ func (h *API) AddLinkV2(w http.ResponseWriter, r *http.Request) {
 	q := sqlc.New(h.db)
 
 	payload := r.Context().Value("payload").(*auth.PayLoad)
-
+	var folderID pgtype.Text
+	if req.FolderId == "" {
+		folderID = pgtype.Text{Valid: false}
+	} else {
+		folderID = pgtype.Text{Valid: true, String: req.FolderId}
+	}
 	if onlyStoreURL {
 		addLinkParams := sqlc.AddLinkParams{
 			LinkID:        linkID,
@@ -82,7 +87,7 @@ func (h *API) AddLinkV2(w http.ResponseWriter, r *http.Request) {
 			LinkUrl:       req.URL,
 			LinkFavicon:   "",
 			AccountID:     payload.AccountID,
-			FolderID:      pgtype.Text{Valid: true, String: req.FolderId}, // Ensure this matches the expected type
+			FolderID:      folderID,
 			LinkThumbnail: "",
 			Description:   pgtype.Text{Valid: false, String: ""},
 		}
@@ -126,7 +131,7 @@ func (h *API) AddLinkV2(w http.ResponseWriter, r *http.Request) {
 	}()
 	urlScreenshotLink := <-urlScreenshotChan
 	log.Printf("Screenshot fetching took %s", time.Since(screenshotFetchStart))
-
+	fmt.Println("folderID", folderID)
 	addLinkParams := sqlc.AddLinkParams{
 		LinkID:        linkID,
 		LinkTitle:     pageDataResult.Title,
@@ -134,7 +139,7 @@ func (h *API) AddLinkV2(w http.ResponseWriter, r *http.Request) {
 		LinkUrl:       req.URL,
 		LinkFavicon:   favicon,
 		AccountID:     payload.AccountID,
-		FolderID:      pgtype.Text{Valid: true, String: req.FolderId}, // Ensure this matches the expected type
+		FolderID:      folderID, // Ensure this matches the expected type
 		LinkThumbnail: urlScreenshotLink,
 		Description:   pgtype.Text{Valid: true, String: pageDataResult.Description},
 	}

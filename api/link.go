@@ -454,6 +454,7 @@ func (h *API) GetFolderLinks(w http.ResponseWriter, r *http.Request) {
 	q := sqlc.New(h.db)
 
 	links, err := q.GetFolderLinks(r.Context(), pgtype.Text{String: folderID, Valid: true})
+
 	if err != nil {
 		e.ErrorInternalServer(w, err)
 		return
@@ -783,4 +784,49 @@ func (h *API) GetTagByLinkId(w http.ResponseWriter, r *http.Request) {
 	}
 
 	util.JsonResponse(w, tags)
+}
+
+type ChangeLinkDesc struct {
+	LinkID   string `json:"link_id" validate:"required"`
+	LinkDesc string `json:"link_desc" validate:"required"`
+}
+
+func (h *API) ChangeLinkDesc(w http.ResponseWriter, r *http.Request) {
+
+	var changeLinkDesc ChangeLinkDesc
+
+	body := json.NewDecoder(r.Body)
+
+	body.DisallowUnknownFields()
+	if err := body.Decode(&changeLinkDesc); err != nil {
+		h.logger.Error().Err(err).Msg("Cannot decode ChangeLinkURL")
+		e.ErrorDecodingRequest(w, err)
+		return
+	}
+
+	if err := h.validator.Struct(changeLinkDesc); err != nil {
+		for _, err := range err.(validator.ValidationErrors) {
+			h.logger.Error().Err(err).Msg("Validation error")
+		}
+		util.JsonResponse(w, "Validation failed", http.StatusBadRequest)
+		return
+	}
+	payload := r.Context().Value("payload").(*auth.PayLoad)
+
+	q := sqlc.New(h.db)
+	params := sqlc.UpdateLinkDescParams{
+		AccountID:   payload.AccountID,
+		LinkID:      changeLinkDesc.LinkID,
+		Description: pgtype.Text{Valid: true, String: changeLinkDesc.LinkDesc},
+	}
+
+	newDescription, err := q.UpdateLinkDesc(r.Context(), params)
+	if err != nil {
+
+		h.logger.Error().Err(err).Msg("can notchange link title")
+		e.ErrorInternalServer(w, err)
+		return
+	}
+
+	util.JsonResponse(w, newDescription)
 }

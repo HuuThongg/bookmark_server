@@ -28,6 +28,7 @@ type Config struct {
 	BlackBlazeKeyId        string        `mapstructure:"BLACKBLAZE_KEY_ID"`
 	BlackBlazeHostName     string        `mapstructure:"BLACKBLAZE_HOSTNAME"`
 	HOST                   string        `mapstructure:"HOST"`
+	DOMAIN                 string        `mapstructure:"DOMAIN"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
@@ -55,6 +56,10 @@ func LoadConfig(path string) (config Config, err error) {
 	config.BlackBlazeSecretKey = os.Getenv("BLACKBLAZE_SECRET_KEY")
 	config.BlackBlazeKeyId = os.Getenv("BLACKBLAZE_KEY_ID")
 	config.BlackBlazeHostName = os.Getenv("BLACKBLAZE_HOSTNAME")
+	config.DOMAIN = os.Getenv("DOMAIN")
+	if config.DOMAIN == "" {
+		config.DOMAIN = "http://localhost:8080"
+	}
 	config.HOST = os.Getenv("HOST")
 	if config.HOST == "" {
 		config.HOST = "http://localhost:5173"

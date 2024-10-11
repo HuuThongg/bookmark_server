@@ -13,6 +13,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -142,6 +143,8 @@ func UploadLinkThumbnail2(linkThumbnailChannel chan string, ogImage, host string
 		Body:          bytes.NewReader(imageBuffer),
 		ContentLength: aws.Int64(int64(len(imageBuffer))),
 		ContentType:   aws.String(imgFormat),
+		CacheControl:  aws.String("public, max-age=31536000"),
+		Expires:       aws.Time(time.Now().Add(365 * 24 * time.Hour)),
 	}
 	_, err = s3Client.PutObject(&object)
 	if err != nil {
@@ -150,6 +153,7 @@ func UploadLinkThumbnail2(linkThumbnailChannel chan string, ogImage, host string
 
 	log.Printf("link thumbnail url: %s", fmt.Sprintf("%s/%s", config.BlackBlazeHostName, *object.Key))
 	linkThumbnailChannel <- fmt.Sprintf("%s/link-thumbnails/%s", config.BlackBlazeHostName, *object.Key)
+
 	return nil
 }
 

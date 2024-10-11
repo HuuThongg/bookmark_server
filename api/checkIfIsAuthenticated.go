@@ -69,7 +69,6 @@ func (h *API) CheckIfIsAuthenticated(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	fmt.Println("access_token: ", req.Token)
 	requestValidationChan := make(chan error, 1)
 
 	var wg sync.WaitGroup
@@ -106,7 +105,6 @@ func (h *API) CheckIfIsAuthenticated(w http.ResponseWriter, r *http.Request) {
 	}
 
 	q := sqlc.New(h.db)
-	fmt.Println("start getting account")
 	account, err := q.GetAccount(r.Context(), int64(payload.AccountID))
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -127,9 +125,6 @@ func (h *API) CheckIfIsAuthenticated(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	fmt.Println("end getting account")
-	fmt.Println("account time", account.LastLogin.Time.UTC())
-	fmt.Println("payload time", payload.IssuedAt.Time.UTC().Truncate(time.Microsecond))
 	if account.LastLogin.Time.UTC() != payload.IssuedAt.Time.UTC().Truncate(time.Microsecond) {
 		util.Response(w, "user not logged in", http.StatusUnauthorized)
 		return

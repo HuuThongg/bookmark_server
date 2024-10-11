@@ -714,3 +714,24 @@ func (q *Queries) SearchLinkz(ctx context.Context, arg SearchLinkzParams) ([]Lin
 	}
 	return items, nil
 }
+
+const updateLinkDesc = `-- name: UpdateLinkDesc :one
+UPDATE link
+SET description = $2,
+    updated_at = CURRENT_TIMESTAMP
+WHERE link_id = $1 AND account_id = $3
+RETURNING description
+`
+
+type UpdateLinkDescParams struct {
+	LinkID      string      `json:"link_id"`
+	Description pgtype.Text `json:"description"`
+	AccountID   int64       `json:"account_id"`
+}
+
+func (q *Queries) UpdateLinkDesc(ctx context.Context, arg UpdateLinkDescParams) (pgtype.Text, error) {
+	row := q.db.QueryRow(ctx, updateLinkDesc, arg.LinkID, arg.Description, arg.AccountID)
+	var description pgtype.Text
+	err := row.Scan(&description)
+	return description, err
+}
