@@ -29,6 +29,18 @@ func newResponse(folders []returnFolder, links []sqlc.Link) *getLinksAndFoldersR
 	}
 }
 
+type getLinksExtendAndFoldersResponse struct {
+	Folders []returnFolder           `json:"folders"`
+	Links   []sqlc.GetFolderLinksRow `json:"links"`
+}
+
+func newResponseWithLinkExtend(folders []returnFolder, links []sqlc.GetFolderLinksRow) *getLinksExtendAndFoldersResponse {
+	return &getLinksExtendAndFoldersResponse{
+		Folders: folders,
+		Links:   links,
+	}
+}
+
 type returnFolder struct {
 	FolderID        string             `json:"folder_id"`
 	AccountID       int64              `json:"account_id"`
@@ -134,6 +146,6 @@ func getFolderNodesAndLinks(h *API, folderID string, w http.ResponseWriter, ctx 
 		e.ErrorInternalServer(w, err)
 		return
 	}
-	res := newResponse(rfs, links)
+	res := newResponseWithLinkExtend(rfs, links)
 	util.JsonResponse(w, res)
 }

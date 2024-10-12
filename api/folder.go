@@ -997,19 +997,22 @@ func (h *API) DeleteFoldersForever(w http.ResponseWriter, r *http.Request) {
 
 	q := sqlc.New(h.db)
 
-	var folders []sqlc.Folder
+	var folderIds []string
 
 	for _, folderID := range req.FolderIDS {
-		f, err := q.DeleteFolderForever(r.Context(), folderID)
+		folder_id, err := q.DeleteFolderForever(r.Context(), folderID)
 		if err != nil {
 			e.ErrorInternalServer(w, err)
 			return
 		}
 
-		folders = append(folders, f...)
+		folderIds = append(folderIds, folder_id)
 	}
-
-	util.JsonResponse(w, folders)
+	response := map[string]interface{}{
+		"result":    true,
+		"folderIds": folderIds,
+	}
+	util.JsonResponse(w, response)
 }
 
 func (h *API) GetSortedTreeFolders(w http.ResponseWriter, r *http.Request) {
@@ -1024,6 +1027,7 @@ func (h *API) GetSortedTreeFolders(w http.ResponseWriter, r *http.Request) {
 		e.ErrorInternalServer(w, err)
 		return
 	}
+	fmt.Println("folders", folders)
 
 	util.JsonResponse(w, folders)
 }

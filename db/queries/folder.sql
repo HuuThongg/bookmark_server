@@ -92,8 +92,8 @@ SELECT * FROM folder WHERE folder_deleted_at IS NOT NULL AND account_id = $1 ORD
 -- name: RestoreFolderFromTrash :one
 UPDATE folder SET folder_deleted_at = NULL WHERE folder_id = $1 RETURNING *;
 
--- name: DeleteFolderForever :many
-DELETE FROM folder where path <@ (SELECT path FROM folder where folder.folder_id = $1) RETURNING *;
+-- name: DeleteFolderForever :one
+DELETE FROM folder where path <@ (SELECT path FROM folder where folder.folder_id = $1) RETURNING folder_id;
 
 -- name: SearchFolders :many
 SELECT *
@@ -117,5 +117,5 @@ WHERE folder_id = $2 AND account_id = $3;
 SELECT folder_id, folder_name, subfolder_of, folder_order
 FROM folder
 WHERE account_id = $1
-ORDER BY folder_order;  
+ORDER BY folder_order ASC;  
 

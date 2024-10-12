@@ -124,6 +124,9 @@ func Router(l *zerolog.Logger, v *validator.Validate, db *pgxpool.Pool, config *
 			r.Get("/", a.GetTagByLinkId)
 			r.Get("/stats", a.GetTagStats)
 		})
+		r.Route("/tags", func(r chi.Router) {
+			r.Post("/", a.AddTagsForLinks)
+		})
 
 	})
 	r.Get("/", a.Hello)

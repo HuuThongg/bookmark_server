@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -66,7 +67,7 @@ UPDATE link
 SET link_notes = $2,
     updated_at = CURRENT_TIMESTAMP
 WHERE link_id = $1 AND account_id = $3
-RETURNING link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col, description
+RETURNING link_id, link_notes
 `
 
 type AddNoteParams struct {
@@ -75,25 +76,15 @@ type AddNoteParams struct {
 	AccountID int64  `json:"account_id"`
 }
 
-func (q *Queries) AddNote(ctx context.Context, arg AddNoteParams) (Link, error) {
+type AddNoteRow struct {
+	LinkID    string `json:"link_id"`
+	LinkNotes string `json:"link_notes"`
+}
+
+func (q *Queries) AddNote(ctx context.Context, arg AddNoteParams) (AddNoteRow, error) {
 	row := q.db.QueryRow(ctx, addNote, arg.LinkID, arg.LinkNotes, arg.AccountID)
-	var i Link
-	err := row.Scan(
-		&i.LinkID,
-		&i.LinkTitle,
-		&i.LinkThumbnail,
-		&i.LinkFavicon,
-		&i.LinkHostname,
-		&i.LinkUrl,
-		&i.LinkNotes,
-		&i.AccountID,
-		&i.FolderID,
-		&i.AddedAt,
-		&i.UpdatedAt,
-		&i.DeletedAt,
-		&i.TextsearchableIndexCol,
-		&i.Description,
-	)
+	var i AddNoteRow
+	err := row.Scan(&i.LinkID, &i.LinkNotes)
 	return i, err
 }
 
@@ -245,18 +236,74 @@ func (q *Queries) GetAllLinks(ctx context.Context, accountID int64) ([]Link, err
 }
 
 const getFolderLinks = `-- name: GetFolderLinks :many
-SELECT link_id, link_title, link_thumbnail, link_favicon, link_hostname, link_url, link_notes, account_id, folder_id, added_at, updated_at, deleted_at, textsearchable_index_col, description FROM link WHERE folder_id = $1 AND deleted_at IS NULL ORDER BY added_at DESC
+SELECT 
+    l.link_id, 
+    l.link_title, 
+    l.link_thumbnail, 
+    l.link_favicon, 
+    l.link_hostname, 
+    l.link_url, 
+    l.link_notes, 
+    l.account_id, 
+    l.folder_id, 
+    l.added_at, 
+    l.updated_at, 
+    l.deleted_at, 
+    l.description,
+    f.folder_name,
+JSON_AGG(
+        CASE 
+            WHEN t.tag_name IS NOT NULL AND t.tag_id IS NOT NULL 
+            THEN JSON_BUILD_OBJECT('tag_name', t.tag_name, 'tag_id', t.tag_id)
+            ELSE NULL
+        END
+    ) FILTER (WHERE t.tag_name IS NOT NULL AND t.tag_id IS NOT NULL) AS tags
+FROM 
+    link l
+LEFT JOIN 
+    folder f ON l.folder_id = f.folder_id
+LEFT JOIN 
+    link_tags lt ON l.link_id = lt.link_id
+LEFT JOIN 
+    tags t ON lt.tag_id = t.tag_id
+WHERE 
+    l.folder_id = $1 AND l.deleted_at IS NULL
+GROUP BY 
+    l.link_id, l.link_title, l.link_thumbnail, l.link_favicon, 
+    l.link_hostname, l.link_url, l.link_notes, l.account_id, 
+    l.folder_id, l.added_at, l.updated_at, l.deleted_at, 
+    l.description, f.folder_name
+ORDER BY 
+    l.added_at DESC
 `
 
-func (q *Queries) GetFolderLinks(ctx context.Context, folderID pgtype.Text) ([]Link, error) {
+type GetFolderLinksRow struct {
+	LinkID        string             `json:"link_id"`
+	LinkTitle     string             `json:"link_title"`
+	LinkThumbnail string             `json:"link_thumbnail"`
+	LinkFavicon   string             `json:"link_favicon"`
+	LinkHostname  string             `json:"link_hostname"`
+	LinkUrl       string             `json:"link_url"`
+	LinkNotes     string             `json:"link_notes"`
+	AccountID     int64              `json:"account_id"`
+	FolderID      pgtype.Text        `json:"folder_id"`
+	AddedAt       pgtype.Timestamptz `json:"added_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt     pgtype.Timestamptz `json:"deleted_at"`
+	Description   pgtype.Text        `json:"description"`
+	FolderName    pgtype.Text        `json:"folder_name"`
+	Tags          json.RawMessage    `json:"tags"`
+}
+
+func (q *Queries) GetFolderLinks(ctx context.Context, folderID pgtype.Text) ([]GetFolderLinksRow, error) {
 	rows, err := q.db.Query(ctx, getFolderLinks, folderID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Link
+	var items []GetFolderLinksRow
 	for rows.Next() {
-		var i Link
+		var i GetFolderLinksRow
 		if err := rows.Scan(
 			&i.LinkID,
 			&i.LinkTitle,
@@ -270,8 +317,9 @@ func (q *Queries) GetFolderLinks(ctx context.Context, folderID pgtype.Text) ([]L
 			&i.AddedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
-			&i.TextsearchableIndexCol,
 			&i.Description,
+			&i.FolderName,
+			&i.Tags,
 		); err != nil {
 			return nil, err
 		}

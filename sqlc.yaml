@@ -21,3 +21,4 @@ sql:
             go_type: "string"
           - column: "folder.textsearchable_index_col"
             go_type: "string"
+          

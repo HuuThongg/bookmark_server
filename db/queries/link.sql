@@ -10,7 +10,45 @@ SELECT * FROM link WHERE account_id = $1 AND folder_id IS NULL AND deleted_at IS
 SELECT * FROM link WHERE account_id = $1  AND deleted_at IS NULL ORDER BY added_at DESC;
 
 -- name: GetFolderLinks :many
-SELECT * FROM link WHERE folder_id = $1 AND deleted_at IS NULL ORDER BY added_at DESC;
+SELECT 
+    l.link_id, 
+    l.link_title, 
+    l.link_thumbnail, 
+    l.link_favicon, 
+    l.link_hostname, 
+    l.link_url, 
+    l.link_notes, 
+    l.account_id, 
+    l.folder_id, 
+    l.added_at, 
+    l.updated_at, 
+    l.deleted_at, 
+    l.description,
+    f.folder_name,
+JSON_AGG(
+        CASE 
+            WHEN t.tag_name IS NOT NULL AND t.tag_id IS NOT NULL 
+            THEN JSON_BUILD_OBJECT('tag_name', t.tag_name, 'tag_id', t.tag_id)
+            ELSE NULL
+        END
+    ) FILTER (WHERE t.tag_name IS NOT NULL AND t.tag_id IS NOT NULL) AS tags
+FROM 
+    link l
+LEFT JOIN 
+    folder f ON l.folder_id = f.folder_id
+LEFT JOIN 
+    link_tags lt ON l.link_id = lt.link_id
+LEFT JOIN 
+    tags t ON lt.tag_id = t.tag_id
+WHERE 
+    l.folder_id = $1 AND l.deleted_at IS NULL
+GROUP BY 
+    l.link_id, l.link_title, l.link_thumbnail, l.link_favicon, 
+    l.link_hostname, l.link_url, l.link_notes, l.account_id, 
+    l.folder_id, l.added_at, l.updated_at, l.deleted_at, 
+    l.description, f.folder_name
+ORDER BY 
+    l.added_at DESC;
 
 -- name: RenameLink :one
 UPDATE link SET link_title = $1 WHERE link_id = $2 RETURNING *;
@@ -59,7 +97,7 @@ UPDATE link
 SET link_notes = $2,
     updated_at = CURRENT_TIMESTAMP
 WHERE link_id = $1 AND account_id = $3
-RETURNING *;
+RETURNING link_id, link_notes;
 
 -- name: ChangeLinkTitle :one
 UPDATE link

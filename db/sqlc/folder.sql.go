@@ -53,41 +53,15 @@ func (q *Queries) CreateFolder(ctx context.Context, arg CreateFolderParams) (Fol
 	return i, err
 }
 
-const deleteFolderForever = `-- name: DeleteFolderForever :many
-DELETE FROM folder where path <@ (SELECT path FROM folder where folder.folder_id = $1) RETURNING folder_id, account_id, folder_name, path, label, starred, folder_created_at, folder_updated_at, subfolder_of, folder_deleted_at, textsearchable_index_col, folder_order
+const deleteFolderForever = `-- name: DeleteFolderForever :one
+DELETE FROM folder where path <@ (SELECT path FROM folder where folder.folder_id = $1) RETURNING folder_id
 `
 
-func (q *Queries) DeleteFolderForever(ctx context.Context, folderID string) ([]Folder, error) {
-	rows, err := q.db.Query(ctx, deleteFolderForever, folderID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Folder
-	for rows.Next() {
-		var i Folder
-		if err := rows.Scan(
-			&i.FolderID,
-			&i.AccountID,
-			&i.FolderName,
-			&i.Path,
-			&i.Label,
-			&i.Starred,
-			&i.FolderCreatedAt,
-			&i.FolderUpdatedAt,
-			&i.SubfolderOf,
-			&i.FolderDeletedAt,
-			&i.TextsearchableIndexCol,
-			&i.FolderOrder,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+func (q *Queries) DeleteFolderForever(ctx context.Context, folderID string) (string, error) {
+	row := q.db.QueryRow(ctx, deleteFolderForever, folderID)
+	var folder_id string
+	err := row.Scan(&folder_id)
+	return folder_id, err
 }
 
 const getFolder = `-- name: GetFolder :one
@@ -385,7 +359,7 @@ const getTreeFolders = `-- name: GetTreeFolders :many
 SELECT folder_id, folder_name, subfolder_of, folder_order
 FROM folder
 WHERE account_id = $1
-ORDER BY folder_order
+ORDER BY folder_order ASC
 `
 
 type GetTreeFoldersRow struct {
