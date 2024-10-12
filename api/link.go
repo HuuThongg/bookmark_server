@@ -435,6 +435,28 @@ func (h *API) DeleteLinksForever(w http.ResponseWriter, r *http.Request) {
 	util.JsonResponse(w, links)
 }
 
+type TagDto struct {
+	TagID   int64  `json:"tag_id"`
+	TagName string `json:"tag_name"`
+}
+type GetFolderLinksRowNew struct {
+	LinkID        string             `json:"link_id"`
+	LinkTitle     string             `json:"link_title"`
+	LinkThumbnail string             `json:"link_thumbnail"`
+	LinkFavicon   string             `json:"link_favicon"`
+	LinkHostname  string             `json:"link_hostname"`
+	LinkUrl       string             `json:"link_url"`
+	LinkNotes     string             `json:"link_notes"`
+	AccountID     int64              `json:"account_id"`
+	FolderID      pgtype.Text        `json:"folder_id"`
+	AddedAt       pgtype.Timestamptz `json:"added_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt     pgtype.Timestamptz `json:"deleted_at"`
+	Description   pgtype.Text        `json:"description"`
+	FolderName    pgtype.Text        `json:"folder_name"`
+	Tags          []TagDto           `json:"tags"`
+}
+
 func (h *API) GetFolderLinks(w http.ResponseWriter, r *http.Request) {
 	accontID, err := strconv.Atoi(chi.URLParam(r, "accountID"))
 	if err != nil {
@@ -461,7 +483,42 @@ func (h *API) GetFolderLinks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.JsonResponse(w, links)
+	var folderLinks []GetFolderLinksRowNew
+
+	// Iterate over the results to unmarshal tags and create FolderLinks
+	for _, link := range links {
+		var tags []TagDto
+
+		// Unmarshal the tags from []byte to []TagDto
+		if len(link.Tags) > 0 {
+			err := json.Unmarshal(link.Tags, &tags)
+			if err != nil {
+				e.ErrorInternalServer(w, err)
+				return
+			}
+		}
+
+		folderLink := GetFolderLinksRowNew{
+			LinkID:        link.LinkID,
+			LinkTitle:     link.LinkTitle,
+			LinkThumbnail: link.LinkThumbnail,
+			LinkFavicon:   link.LinkFavicon,
+			LinkNotes:     link.LinkNotes,
+			LinkHostname:  link.LinkHostname,
+			LinkUrl:       link.LinkHostname,
+			AccountID:     link.AccountID,
+			UpdatedAt:     link.UpdatedAt,
+			DeletedAt:     link.DeletedAt,
+			Description:   link.Description,
+			FolderID:      link.FolderID,
+			FolderName:    link.FolderName,
+			AddedAt:       link.AddedAt,
+			Tags:          tags,
+		}
+
+		folderLinks = append(folderLinks, folderLink)
+	}
+	util.JsonResponse(w, folderLinks)
 }
 
 func (h *API) GetAllLinks(w http.ResponseWriter, r *http.Request) {
@@ -490,7 +547,42 @@ func (h *API) GetAllLinks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.JsonResponse(w, links)
+	var folderLinks []GetFolderLinksRowNew
+
+	// Iterate over the results to unmarshal tags and create FolderLinks
+	for _, link := range links {
+		var tags []TagDto
+
+		// Unmarshal the tags from []byte to []TagDto
+		if len(link.Tags) > 0 {
+			err := json.Unmarshal(link.Tags, &tags)
+			if err != nil {
+				e.ErrorInternalServer(w, err)
+				return
+			}
+		}
+
+		folderLink := GetFolderLinksRowNew{
+			LinkID:        link.LinkID,
+			LinkTitle:     link.LinkTitle,
+			LinkThumbnail: link.LinkThumbnail,
+			LinkFavicon:   link.LinkFavicon,
+			LinkNotes:     link.LinkNotes,
+			LinkHostname:  link.LinkHostname,
+			LinkUrl:       link.LinkHostname,
+			AccountID:     link.AccountID,
+			UpdatedAt:     link.UpdatedAt,
+			DeletedAt:     link.DeletedAt,
+			Description:   link.Description,
+			FolderID:      link.FolderID,
+			FolderName:    link.FolderName,
+			AddedAt:       link.AddedAt,
+			Tags:          tags,
+		}
+
+		folderLinks = append(folderLinks, folderLink)
+	}
+	util.JsonResponse(w, folderLinks)
 }
 
 type AddNoteRequest struct {
