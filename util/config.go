@@ -31,11 +31,11 @@ type Config struct {
 	HOST                         string        `mapstructure:"HOST"`
 	DOMAIN                       string        `mapstructure:"DOMAIN"`
 	VALKEY_URL                   string        `mapstructure:"VALKEY_URL"`
-	CLOUDFLARE_ACCESS_KEY_ID     string
-	CLOUDFLARE_ENDPOINT          string
-	CLOUDFLARE_SECRET_ACCESS_KEY string
-	CLOUDFLARE_OG_BUCKET         string
-	CLOUDFLARE_REGION            string
+	CLOUDFLARE_ACCESS_KEY_ID     string        `mapstructure:"CLOUDFLARE_ACCESS_KEY_ID"`
+	CLOUDFLARE_ENDPOINT          string        `mapstructure:"CLOUDFLARE_ENDPOINT"`
+	CLOUDFLARE_SECRET_ACCESS_KEY string        `mapstructure:"CLOUDFLARE_SECRET_ACCESS_KEY"`
+	CLOUDFLARE_OG_BUCKET         string        `mapstructure:"CLOUDFLARE_OG_BUCKET"`
+	CLOUDFLARE_REGION            string        `mapstructure:"CLOUDFLARE_REGION"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
