@@ -135,7 +135,10 @@ func UploadLinkThumbnail2(linkThumbnailChannel chan string, ogImage, host string
 		log.Panicf("could not create a new vultr s3 session: %v", err)
 	}
 	imgFormat := fmt.Sprintf("image/%v", imgType)
-
+	ogImageLink, err := UploadOgImage(config, imageBuffer, imgFormat)
+	if err != nil {
+		log.Println("Can not upload to Cloudflare R2")
+	}
 	s3Client := s3.New(newSession)
 	object := s3.PutObjectInput{
 		Bucket:        aws.String("/link-thumbnails"),
@@ -152,7 +155,9 @@ func UploadLinkThumbnail2(linkThumbnailChannel chan string, ogImage, host string
 	}
 
 	log.Printf("link thumbnail url: %s", fmt.Sprintf("%s/%s", config.BlackBlazeHostName, *object.Key))
-	linkThumbnailChannel <- fmt.Sprintf("%s/link-thumbnails/%s", config.BlackBlazeHostName, *object.Key)
+	// linkThumbnailChannel <- fmt.Sprintf("%s/link-thumbnails/%s", config.BlackBlazeHostName, *object.Key)
+	fmt.Println("ogImageLink", ogImageLink)
+	linkThumbnailChannel <- ogImageLink
 
 	return nil
 }

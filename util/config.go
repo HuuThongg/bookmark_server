@@ -11,26 +11,31 @@ import (
 )
 
 type Config struct {
-	DATABASE_URL           string        `mapstructure:"DATABASE_URL"`
-	Access_Token_Duration  time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
-	Refresh_Token_Duration time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
-	SecretKeyHex           string        `mapstructure:"SECRET_KEY_HEX"`
-	PublicKeyHex           string        `mapstructure:"PUBLIC_KEY_HEX"`
-	DOSecretKey            string        `mapstructure:"DO_SECRET"`
-	DOSpacesKey            string        `mapstructure:"DO_SPACES"`
-	MailJetApiKey          string        `mapstructure:"MAILJET_API_KEY"`
-	MailJetSecretKey       string        `mapstructure:"MAILJET_SECRET_KEY"`
-	TimeoutRead            time.Duration `mapstructure:"SERVER_TIMEOUT_READ"`
-	TimeoutWrite           time.Duration `mapstructure:"SERVER_TIMEOUT_WRITE"`
-	TimeoutIdle            time.Duration `mapstructure:"SERVER_TIMEOUT_IDLE"`
-	Debug                  bool          `mapstructure:"SERVER_DEBUG"`
-	PORT                   string        `mapstructure:"SERVER_PORT"`
-	BlackBlazeSecretKey    string        `mapstructure:"BLACKBLAZE_SECRET_KEY"`
-	BlackBlazeKeyId        string        `mapstructure:"BLACKBLAZE_KEY_ID"`
-	BlackBlazeHostName     string        `mapstructure:"BLACKBLAZE_HOSTNAME"`
-	HOST                   string        `mapstructure:"HOST"`
-	DOMAIN                 string        `mapstructure:"DOMAIN"`
-	VALKEY_URL             string        `mapstructure:"VALKEY_URL"`
+	DATABASE_URL                 string        `mapstructure:"DATABASE_URL"`
+	Access_Token_Duration        time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
+	Refresh_Token_Duration       time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
+	SecretKeyHex                 string        `mapstructure:"SECRET_KEY_HEX"`
+	PublicKeyHex                 string        `mapstructure:"PUBLIC_KEY_HEX"`
+	DOSecretKey                  string        `mapstructure:"DO_SECRET"`
+	DOSpacesKey                  string        `mapstructure:"DO_SPACES"`
+	MailJetApiKey                string        `mapstructure:"MAILJET_API_KEY"`
+	MailJetSecretKey             string        `mapstructure:"MAILJET_SECRET_KEY"`
+	TimeoutRead                  time.Duration `mapstructure:"SERVER_TIMEOUT_READ"`
+	TimeoutWrite                 time.Duration `mapstructure:"SERVER_TIMEOUT_WRITE"`
+	TimeoutIdle                  time.Duration `mapstructure:"SERVER_TIMEOUT_IDLE"`
+	Debug                        bool          `mapstructure:"SERVER_DEBUG"`
+	PORT                         string        `mapstructure:"SERVER_PORT"`
+	BlackBlazeSecretKey          string        `mapstructure:"BLACKBLAZE_SECRET_KEY"`
+	BlackBlazeKeyId              string        `mapstructure:"BLACKBLAZE_KEY_ID"`
+	BlackBlazeHostName           string        `mapstructure:"BLACKBLAZE_HOSTNAME"`
+	HOST                         string        `mapstructure:"HOST"`
+	DOMAIN                       string        `mapstructure:"DOMAIN"`
+	VALKEY_URL                   string        `mapstructure:"VALKEY_URL"`
+	CLOUDFLARE_ACCESS_KEY_ID     string
+	CLOUDFLARE_ENDPOINT          string
+	CLOUDFLARE_SECRET_ACCESS_KEY string
+	CLOUDFLARE_OG_BUCKET         string
+	CLOUDFLARE_REGION            string
 }
 
 func LoadConfig(path string) (config Config, err error) {
@@ -59,6 +64,11 @@ func LoadConfig(path string) (config Config, err error) {
 	config.BlackBlazeKeyId = os.Getenv("BLACKBLAZE_KEY_ID")
 	config.BlackBlazeHostName = os.Getenv("BLACKBLAZE_HOSTNAME")
 	config.DOMAIN = os.Getenv("DOMAIN")
+	config.CLOUDFLARE_ACCESS_KEY_ID = os.Getenv("CLOUDFLARE_ACCESS_KEY_ID")
+	config.CLOUDFLARE_ENDPOINT = os.Getenv("CLOUDFLARE_ENDPOINT")
+	config.CLOUDFLARE_SECRET_ACCESS_KEY = os.Getenv("CLOUDFLARE_SECRET_ACCESS_KEY")
+	config.CLOUDFLARE_OG_BUCKET = os.Getenv("CLOUDFLARE_OG_BUCKET")
+	config.CLOUDFLARE_REGION = os.Getenv("CLOUDFLARE_REGION")
 	config.VALKEY_URL = os.Getenv("VALKEY_URL")
 	if config.VALKEY_URL == "" {
 		log.Panic("VALKEY_URL is empty")

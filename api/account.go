@@ -203,7 +203,7 @@ func loginUser(account sqlc.Account, w http.ResponseWriter, h *API, config util.
 		Expires:  refreshTokenPayload.Expiry.Time,
 		Secure:   false,
 		SameSite: http.SameSiteNoneMode,
-		HttpOnly: true,
+		HttpOnly: false,
 	}
 
 	http.SetCookie(w, &refreshTokenCookie)

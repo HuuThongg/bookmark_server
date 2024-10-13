@@ -18,13 +18,13 @@ import (
 func (h *API) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	log := h.logger.With().Str("func", "RefreshToken").Logger()
 
-	cc, errr := r.Cookie("is_authenticate")
-	if errr != nil {
-		log.Error().Err(errr).Msg("is_authenticate is empty")
-		util.Response(w, "something went wrong", http.StatusInternalServerError)
-		return
-	}
-	fmt.Println("is_authenticate: ", cc)
+	// cc, errr := r.Cookie("is_authenticate")
+	// if errr != nil {
+	// 	log.Error().Err(errr).Msg("is_authenticate is empty")
+	// 	util.Response(w, "something went wrong", http.StatusInternalServerError)
+	// 	return
+	// }
+	// fmt.Println("is_authenticate: ", cc)
 	c, err := r.Cookie("refreshTokenCookie")
 	if err != nil {
 		log.Error().Err(err).Msg("refreshTokenCookie is empty")
@@ -76,8 +76,8 @@ func (h *API) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		Expires:  refreshTokenPayload.Expiry.Time,
 		Secure:   false,
-		SameSite: http.SameSiteNoneMode,
-		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		HttpOnly: false,
 	}
 
 	http.SetCookie(w, &refreshTokenCookie)

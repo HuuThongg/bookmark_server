@@ -185,7 +185,7 @@ func (h *API) SignIn(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		Expires:  refreshTokenPayload.Expiry.Time,
 		Secure:   false,
-		SameSite: http.SameSiteNoneMode,
+		SameSite: http.SameSiteLaxMode,
 		HttpOnly: false,
 	}
 	http.SetCookie(w, &refreshTokenCookie)
