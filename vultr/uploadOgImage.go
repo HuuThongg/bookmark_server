@@ -45,5 +45,5 @@ func UploadOgImage(config util.Config, imgBuffer []byte, imgFormat string) (stri
 	}
 
 	fmt.Println("File uploaded successfully!")
-	return fmt.Sprintf("%s/%s", "https://bookmarking.app", key), nil
+	return fmt.Sprintf("%s/%s", "https://static.bookmarking.app", key), nil
 }
