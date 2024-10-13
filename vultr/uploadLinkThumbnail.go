@@ -178,14 +178,10 @@ func DownloadImage(url, host string) ([]byte, string, error) {
 	}
 	defer resp.Body.Close()
 	contentType := resp.Header.Get("Content-Type")
-	fmt.Printf("Content-Type of the image: %s\n", contentType)
 
-	// Check if the HTTP status is OK
 	if resp.StatusCode != http.StatusOK {
 		return nil, "", fmt.Errorf("failed to download image: status code %d", resp.StatusCode)
 	}
-
-	// // Create the file where the image will be saved
 
 	parts := strings.Split(contentType, "/")
 	var imageFormat string
@@ -196,37 +192,19 @@ func DownloadImage(url, host string) ([]byte, string, error) {
 	imageFormat = parts[1]
 	var img image.Image
 	var err1 error
-	fmt.Println("imageFormat", imageFormat)
-	filePath := fmt.Sprintf("%s.og.%s", host, imageFormat)
-	outFile, err := os.Create(filePath)
-	if err != nil {
-		return nil, "", err
-	}
-	defer outFile.Close()
 	if imageFormat == "jpeg" || imageFormat == "jpg" {
 		img, err1 = jpeg.Decode(resp.Body)
 		if err1 != nil {
 			log.Fatalf("Failed to decode JPEG image: %v", err1)
 		}
-		fmt.Println("JPEG image decoded successfully:", img.Bounds())
 	} else if imageFormat == "png" {
 		img, err1 = png.Decode(resp.Body)
 		if err1 != nil {
 			log.Fatalf("Failed to decode JPEG image: %v", err)
 		}
-		fmt.Println("Image format is not JPEG, skipping decode.")
 	}
 
 	m := resize.Resize(300, 0, img, resize.Lanczos2)
-
-	if imageFormat == "jpeg" || imageFormat == "jpg" {
-
-		jpeg.Encode(outFile, m, nil)
-	}
-	if imageFormat == "png" {
-		png.Encode(outFile, m)
-	}
-	// return nil
 	var buf bytes.Buffer
 	if imageFormat == "jpeg" || imageFormat == "jpg" {
 		err = jpeg.Encode(&buf, m, nil)

@@ -136,7 +136,7 @@ func (h *API) AddLinkV2(w http.ResponseWriter, r *http.Request) {
 		LinkID:        linkID,
 		LinkTitle:     pageDataResult.Title,
 		LinkHostname:  host,
-		LinkUrl:       req.URL,
+		LinkUrl:       urlToOpen,
 		LinkFavicon:   favicon,
 		AccountID:     payload.AccountID,
 		FolderID:      folderID, // Ensure this matches the expected type

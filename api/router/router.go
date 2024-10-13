@@ -2,10 +2,12 @@ package router
 
 import (
 	"bookmark/api"
+	cm "bookmark/middleware"
 	"bookmark/util"
 	"net/http"
+	"time"
 
-	cm "bookmark/middleware"
+	"github.com/go-chi/httprate"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -34,7 +36,7 @@ func Router(l *zerolog.Logger, v *validator.Validate, db *pgxpool.Pool, config *
 	r.Use(middleware.AllowContentEncoding("application/json", "application/x-www-form-urlencoded"))
 	r.Use(middleware.CleanPath)
 	r.Use(middleware.RedirectSlashes)
-
+	r.Use(httprate.LimitByIP(100, time.Minute))
 	r.Route("/public", func(r chi.Router) {
 
 		r.Get("/proxy", a.ProxyHandler)
