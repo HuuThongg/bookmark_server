@@ -40,7 +40,6 @@ func (s signup) Validate(requestValidationChan chan error) error {
 }
 
 func (h *API) SignUp(w http.ResponseWriter, r *http.Request) {
-	log.Printf("request body: %v", r.Body)
 	data := json.NewDecoder(r.Body)
 
 	data.DisallowUnknownFields()
@@ -138,44 +137,34 @@ func (h *API) SignIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Measure validation time
-	validationStart := time.Now()
 	if err := req.Validate(); err != nil {
 		e.ErrorInternalServer(w, err)
 		return
 	}
-	log.Printf("Validation took %s", time.Since(validationStart))
 
 	// Measure time for querying account
-	queryStart := time.Now()
 	q := sqlc.New(h.db)
 	account, err := q.GetAccountByEmail(r.Context(), req.Email)
 	if err != nil {
 		e.ErrorInternalServer(w, err)
 		return
 	}
-	log.Printf("GetAccountByEmail took %s", time.Since(queryStart))
 
-	comparePW := time.Now()
 	if !util.CompareHash(req.Password, account.AccountPassword) {
 		log.Println("invalid password")
 		util.Response(w, "invalid password", http.StatusUnauthorized)
 		return
 	}
 
-	log.Printf(" comparePW %s", time.Since(comparePW))
-
 	// Load configuration
-	configStart := time.Now()
 	config, err := util.LoadConfig(".")
 	if err != nil {
 		log.Printf("failed to load config file with err: %v", err)
 		util.Response(w, errors.New("something went wrong").Error(), http.StatusInternalServerError)
 		return
 	}
-	log.Printf("LoadConfig took %s", time.Since(configStart))
 
 	// Measure token generation time
-	tokenStart := time.Now()
 	accessToken, accessTokenPayload, err := auth.CreateToken(account.ID, time.Now().UTC(), config.Access_Token_Duration)
 	if err != nil {
 		log.Printf("failed to create access token with err: %v", err)
@@ -188,7 +177,6 @@ func (h *API) SignIn(w http.ResponseWriter, r *http.Request) {
 		util.Response(w, errors.New("something went wrong").Error(), http.StatusInternalServerError)
 		return
 	}
-	log.Printf("Token generation took %s", time.Since(tokenStart))
 
 	// Set refresh token cookie
 	refreshTokenCookie := http.Cookie{
@@ -203,7 +191,6 @@ func (h *API) SignIn(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &refreshTokenCookie)
 
 	// Measure session creation time
-	sessionStart := time.Now()
 	createAccountSessionParams := sqlc.CreateAccountSessionParams{
 		RefreshTokenID: refreshTokenPayload.ID,
 		AccountID:      account.ID,
@@ -217,16 +204,12 @@ func (h *API) SignIn(w http.ResponseWriter, r *http.Request) {
 		e.ErrorInternalServer(w, err)
 		return
 	}
-	log.Printf("CreateAccountSession took %s", time.Since(sessionStart))
 
-	// Measure time for getting account
-	getAccountStart := time.Now()
 	account, err = q.GetAccount(r.Context(), account.ID)
 	if err != nil {
 		e.ErrorInternalServer(w, err)
 		return
 	}
-	log.Printf("GetAccount took %s", time.Since(getAccountStart))
 
 	res := newSession(account, accessToken, refreshToken)
 	http.SetCookie(w, &http.Cookie{

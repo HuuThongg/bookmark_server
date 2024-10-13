@@ -20,3 +20,6 @@ CROSS JOIN (
 ) t
 RETURNING *;
 ```
+
+	// // Reset the body so it can be read again by json.NewDecoder
+	// r.Body = io.NopCloser(bytes.NewBuffer(body))

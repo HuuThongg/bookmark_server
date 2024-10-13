@@ -1027,7 +1027,6 @@ func (h *API) GetSortedTreeFolders(w http.ResponseWriter, r *http.Request) {
 		e.ErrorInternalServer(w, err)
 		return
 	}
-	fmt.Println("folders", folders)
 
 	util.JsonResponse(w, folders)
 }

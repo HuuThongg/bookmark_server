@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"time"
@@ -29,6 +30,7 @@ type Config struct {
 	BlackBlazeHostName     string        `mapstructure:"BLACKBLAZE_HOSTNAME"`
 	HOST                   string        `mapstructure:"HOST"`
 	DOMAIN                 string        `mapstructure:"DOMAIN"`
+	VALKEY_URL             string        `mapstructure:"VALKEY_URL"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
@@ -57,6 +59,10 @@ func LoadConfig(path string) (config Config, err error) {
 	config.BlackBlazeKeyId = os.Getenv("BLACKBLAZE_KEY_ID")
 	config.BlackBlazeHostName = os.Getenv("BLACKBLAZE_HOSTNAME")
 	config.DOMAIN = os.Getenv("DOMAIN")
+	config.VALKEY_URL = os.Getenv("VALKEY_URL")
+	if config.VALKEY_URL == "" {
+		log.Panic("VALKEY_URL is empty")
+	}
 	if config.DOMAIN == "" {
 		config.DOMAIN = "http://localhost:8080"
 	}

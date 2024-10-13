@@ -13,6 +13,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 func main() {
@@ -23,17 +25,24 @@ func main() {
 
 	l := logger.New(config.Debug)
 	v := validator.New()
-	// var logLevel zerolog.Level
-	// if config.Debug {
-	// 	logLevel = zerolog.InfoLevel
-	// } else {
-	// 	logLevel = zerolog.ErrorLevel
-	// }
-	// logger := zerolog.New(os.Stdout).Level(logLevel)
-
 	db := connection.ConnectDB()
 	defer db.Close()
-	r := router.Router(l, v, db, &config)
+
+	opt, err1 := redis.ParseURL(config.VALKEY_URL)
+	if err1 != nil {
+		l.Panic().Err(err1).Msg("cannot conect to redis")
+	}
+	rdb := redis.NewClient(opt)
+	defer rdb.Close()
+	ctx := context.Background()
+
+	if err := rdb.Ping(ctx).Err(); err != nil {
+		l.Panic().Err(err).Msg("Cannot connect to Redis")
+	}
+
+	log.Println("Connected to Redis!")
+
+	r := router.Router(l, v, db, &config, rdb)
 
 	server := &http.Server{
 		Addr:         config.PORT,
@@ -68,3 +77,11 @@ func main() {
 	<-closed
 	l.Info().Msg("Server shutdown successfully")
 }
+
+// var logLevel zerolog.Level
+// if config.Debug {
+// 	logLevel = zerolog.InfoLevel
+// } else {
+// 	logLevel = zerolog.ErrorLevel
+// }
+// logger := zerolog.New(os.Stdout).Level(logLevel)

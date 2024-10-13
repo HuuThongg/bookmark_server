@@ -7,19 +7,20 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/go-chi/httprate"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/go-chi/httprate"
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 )
 
-func Router(l *zerolog.Logger, v *validator.Validate, db *pgxpool.Pool, config *util.Config) *chi.Mux {
+func Router(l *zerolog.Logger, v *validator.Validate, db *pgxpool.Pool, config *util.Config, rdb *redis.Client) *chi.Mux {
 	r := chi.NewRouter()
-	a := api.NewAPI(l, v, db, config)
+
+	a := api.NewAPI(l, v, db, config, rdb)
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://bookmark-ui.vercel.app", "http://localhost:5173", "https://bookmarking.app", "https://ca94dd7c.bookmark-ui.pages.dev"}, // Allow both production and local dev origins

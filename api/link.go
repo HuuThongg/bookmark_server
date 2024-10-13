@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -477,7 +476,6 @@ func (h *API) GetFolderLinks(w http.ResponseWriter, r *http.Request) {
 	q := sqlc.New(h.db)
 
 	links, err := q.GetFolderLinks(r.Context(), pgtype.Text{String: folderID, Valid: true})
-	fmt.Println("get GetFolderLinks", links)
 	if err != nil {
 		e.ErrorInternalServer(w, err)
 		return

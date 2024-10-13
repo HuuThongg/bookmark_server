@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -34,18 +35,6 @@ func (t token) Validate(requestValidationChan chan error) error {
 }
 
 func (h *API) CheckIfIsAuthenticated(w http.ResponseWriter, r *http.Request) {
-	// body, err1 := io.ReadAll(r.Body)
-	// if err1 != nil {
-	// 	log.Printf("failed to read request body: %v", err1)
-	// 	util.Response(w, errors.New("failed to read request body").Error(), http.StatusInternalServerError)
-	// 	return
-	// }
-	//
-	// // Log the raw request body
-	// log.Printf("Request body: %s", string(body))
-	//
-	// // Reset the body so it can be read again by json.NewDecoder
-	// r.Body = io.NopCloser(bytes.NewBuffer(body))
 
 	log := h.logger.With().Str("func", "CheckIfIsAuthenticated").Logger()
 	data := json.NewDecoder(r.Body)
@@ -68,6 +57,18 @@ func (h *API) CheckIfIsAuthenticated(w http.ResponseWriter, r *http.Request) {
 			util.Response(w, errors.New("something went wrong").Error(), http.StatusInternalServerError)
 			return
 		}
+	}
+	cacheKey := req.Token // Use the token as the cache key
+	ctx := context.Background()
+	cachedResponse, err1 := h.redis.Get(ctx, cacheKey).Result()
+	if err1 != nil {
+		log.Info().Msg("failed to get cache from Redis")
+		// util.Response(w, errors.New("something went wrong").Error(), http.StatusInternalServerError)
+		// return
+	} else {
+		log.Info().Msg("CheckIfIsAuthenticated cache hit")
+		util.Response(w, cachedResponse, http.StatusOK)
+		return
 	}
 	requestValidationChan := make(chan error, 1)
 
@@ -130,5 +131,9 @@ func (h *API) CheckIfIsAuthenticated(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.Response(w, "user logged in", http.StatusOK)
+	response := "user logged in"
+	if err := h.redis.Set(ctx, cacheKey, response, 10*time.Minute).Err(); err != nil {
+		log.Error().Err(err).Msg("failed to set cache in Redis")
+	}
+	util.Response(w, response, http.StatusOK)
 }
