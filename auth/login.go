@@ -36,7 +36,7 @@ func LoginUser(account sqlc.Account, q *sqlc.Queries, ctx context.Context) (stri
 		Value:    refreshToken,
 		Path:     "/",
 		Expires:  refreshTokenPayload.Expiry.Time,
-		Secure:   false,
+		Secure:   true,
 		SameSite: http.SameSite(http.SameSiteNoneMode),
 		HttpOnly: true,
 	}

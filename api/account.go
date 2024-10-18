@@ -200,8 +200,8 @@ func loginUser(account sqlc.Account, w http.ResponseWriter, h *API, config util.
 		Name:     "refreshTokenCookie",
 		Value:    refreshToken,
 		Path:     "/",
-		HttpOnly: false,
-		Secure:   false,
+		HttpOnly: true,
+		Secure:   true,
 		SameSite: http.SameSiteNoneMode,
 		Expires:  refreshTokenPayload.Expiry.Time,
 	}
