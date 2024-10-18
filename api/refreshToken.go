@@ -17,7 +17,20 @@ import (
 
 func (h *API) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	log := h.logger.With().Str("func", "RefreshToken").Logger()
+	cookies := r.Cookies()
 
+	// Loop through the cookies
+	for _, cookie := range cookies {
+		fmt.Printf("Cookie Name: %s, Cookie Value: %s\n", cookie.Name, cookie.Value)
+
+		// Check for specific cookie
+		fmt.Println("cookiename:", cookie.Name)
+		fmt.Println("co v:", cookie.Value)
+		if cookie.Name == "refreshTokenCookie" {
+			// Do something with the refreshTokenCookie
+			fmt.Fprintf(w, "Found refreshTokenCookie with value: %s\n", cookie.Value)
+		}
+	}
 	c, err := r.Cookie("refreshTokenCookie")
 	if err != nil {
 		log.Error().Err(err).Msg("refreshTokenCookie is empty")
