@@ -37,9 +37,8 @@ func Router(l *zerolog.Logger, v *validator.Validate, db *pgxpool.Pool, config *
 	r.Use(middleware.AllowContentEncoding("application/json", "application/x-www-form-urlencoded"))
 	r.Use(middleware.CleanPath)
 	r.Use(middleware.RedirectSlashes)
-	r.Use(httprate.LimitByIP(100, time.Minute))
 	r.Route("/public", func(r chi.Router) {
-
+		r.Use(httprate.LimitByIP(100, time.Minute))
 		r.Get("/proxy", a.ProxyHandler)
 		r.Post("/checkIfIsAuthenticated", a.CheckIfIsAuthenticated)
 		//

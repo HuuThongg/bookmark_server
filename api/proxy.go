@@ -24,48 +24,59 @@ func (h *API) ProxyHandler(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{}
 	resp, err := client.Get(target.String())
 	if err != nil {
-		http.Error(w, "Failed to fetch the URL", http.StatusInternalServerError)
+		http.Error(w, "Failed to fetch the URL: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer resp.Body.Close()
-	// modifiedHTML := replaceLinks(html, assetHost)
 
-	// w.Header().Set("Content-Type", "text/html")
-	// w.Header().Set("Cache-Control", "public, max-age=3600") // Cache HTML for 1 hour
-	// w.Header().Set("Expires", time.Now().Add(1*time.Hour).Format(http.TimeFormat))
-	//
-	// if etag := resp.Header.Get("ETag"); etag != "" {
-	// 	w.Header().Set("ETag", etag)
-	// }
+	for key, values := range resp.Header {
+		for _, value := range values {
+			w.Header().Add(key, value)
+		}
+	}
+	w.WriteHeader(resp.StatusCode)
 
 	contentType := resp.Header.Get("Content-Type")
-	fmt.Println("contentType", contentType)
+
 	if strings.Contains(contentType, "text/html") {
 		htmlContent := new(strings.Builder)
-		io.Copy(htmlContent, resp.Body)
+		if _, err := io.Copy(htmlContent, resp.Body); err != nil {
+			http.Error(w, "Failed to read the response body: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		modifiedHTML := rewriteAssetURLs(htmlContent.String(), target, h.config.DOMAIN)
 		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(modifiedHTML))
-	} else {
-		for key, values := range resp.Header {
-			for _, value := range values {
-				w.Header().Add(key, value)
-			}
+		if _, err := w.Write([]byte(modifiedHTML)); err != nil {
+			http.Error(w, "Failed to write response: "+err.Error(), http.StatusInternalServerError)
 		}
-		w.WriteHeader(resp.StatusCode)
-		io.Copy(w, resp.Body)
+	} else {
+		if _, err := io.Copy(w, resp.Body); err != nil {
+			http.Error(w, "Failed to write response: "+err.Error(), http.StatusInternalServerError)
+		}
 	}
 }
+
+// Rewrite function that doesn't modify asset links
 func rewriteAssetURLs(html string, target *url.URL, domain string) string {
-	baseUrl := target.Scheme + "://" + target.Host
-	assetHost := domain + "/public/proxy?url=" + baseUrl
-	// baseTag := fmt.Sprintf(`<base href="%v" target="_blank">`, baseUrl)
-	// if strings.Contains(html, "<head>") {
-	// 	html = strings.Replace(html, "<head>", "<head>\n\t"+baseTag, 1)
-	// }
-	html = strings.ReplaceAll(html, `href="/`, `href="`+assetHost+`/`)
-	html = strings.ReplaceAll(html, `src="/`, `src="`+assetHost+`/`)
-	html = strings.ReplaceAll(html, `srcset="/`, `srcset="`+assetHost+`/`)
-	// html = strings.ReplaceAll(html, `imagesrcset="/`, `imagesrcset="`+assetHost+`/`)
+	// Keep the original hrefs as is, just rewrite any necessary script or link tags for your proxy
+	fmt.Println("target schmea", target.Scheme)
+	html = strings.ReplaceAll(html, `href="`, `href="`+target.Scheme+`://`+target.Host+`/`)
+	html = strings.ReplaceAll(html, `src="`, `src="`+target.Scheme+`://`+target.Host+`/`)
 	return html
 }
+
+// baseTag := fmt.Sprintf(`<base href="%v" target="_blank">`, baseUrl)
+// if strings.Contains(html, "<head>") {
+// 	html = strings.Replace(html, "<head>", "<head>\n\t"+baseTag, 1)
+// }
+// modifiedHTML := replaceLinks(html, assetHost)
+
+// html = strings.ReplaceAll(html, `imagesrcset="/`, `imagesrcset="`+assetHost+`/`)
+// w.Header().Set("Content-Type", "text/html")
+// w.Header().Set("Cache-Control", "public, max-age=3600") // Cache HTML for 1 hour
+// w.Header().Set("Expires", time.Now().Add(1*time.Hour).Format(http.TimeFormat))
+//
+// if etag := resp.Header.Get("ETag"); etag != "" {
+// 	w.Header().Set("ETag", etag)
+// }
