@@ -31,7 +31,6 @@ func newReadRequestOnCollectionDetails(folderid string, accountid int64, payload
 		Payload:   payload,
 	}
 }
-
 func AuthorizeReadRequestOnCollection() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
